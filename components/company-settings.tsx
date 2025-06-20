@@ -4,149 +4,203 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { COMPANY_INFO, type CompanyInfo } from "@/lib/company"
-import { Building2, Save } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Upload, Building } from "lucide-react"
+import type { CompanyInfo } from "../types"
 
 interface CompanySettingsProps {
-  onSave: (companyInfo: CompanyInfo) => void
+  companyInfo: CompanyInfo
+  onUpdate: (info: CompanyInfo) => void
 }
 
-export function CompanySettings({ onSave }: CompanySettingsProps) {
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(COMPANY_INFO)
-  const [isSaving, setIsSaving] = useState(false)
+export function CompanySettings({ companyInfo, onUpdate }: CompanySettingsProps) {
+  const [formData, setFormData] = useState<CompanyInfo>(companyInfo)
+  const [isEditing, setIsEditing] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSaving(true)
-
-    // Simulate saving (in a real app, this would save to database)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    onSave(companyInfo)
-    setIsSaving(false)
+    onUpdate(formData)
+    setIsEditing(false)
   }
 
-  const updateField = (field: keyof CompanyInfo, value: string) => {
-    setCompanyInfo((prev) => ({ ...prev, [field]: value }))
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const logoUrl = event.target?.result as string
+        setFormData({ ...formData, logo: logoUrl })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  if (!isEditing) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5" />
+              Company Information
+            </CardTitle>
+            <Button onClick={() => setIsEditing(true)} size="sm">
+              Edit
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-6">
+            {companyInfo.logo && (
+              <div className="flex-shrink-0">
+                <img
+                  src={companyInfo.logo || "/sample-logo.png"}
+                  alt="Company Logo"
+                  className="w-20 h-20 object-contain"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <h3 className="font-bold text-lg">{companyInfo.name}</h3>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>{companyInfo.address}</p>
+                <p>
+                  {companyInfo.city}, {companyInfo.state} {companyInfo.zipCode}
+                </p>
+                <p>Phone: {companyInfo.phone}</p>
+                <p>Email: {companyInfo.email}</p>
+                {companyInfo.website && <p>Website: {companyInfo.website}</p>}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Company Settings
+          <Building className="w-5 h-5" />
+          Edit Company Information
         </CardTitle>
-        <CardDescription>Update your company information that appears on invoices</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Company Name</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="logo">Company Logo</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {formData.logo && (
+                <img
+                  src={formData.logo || "/sample-logo.png"}
+                  alt="Company Logo"
+                  className="w-16 h-16 object-contain border rounded"
+                />
+              )}
+              <div>
+                <Input id="logo" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => document.getElementById("logo")?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Logo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setFormData({ ...formData, logo: "/sample-logo.png" })}
+                  >
+                    Use Sample Logo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label htmlFor="name">Company Name *</Label>
               <Input
-                id="company-name"
-                value={companyInfo.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                placeholder="Your Company Name"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="logo-url">Logo URL</Label>
+            <div className="col-span-2">
+              <Label htmlFor="address">Address *</Label>
               <Input
-                id="logo-url"
-                value={companyInfo.logo || ""}
-                onChange={(e) => updateField("logo", e.target.value)}
-                placeholder="https://example.com/logo.png"
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                required
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Textarea
-              id="address"
-              value={companyInfo.address}
-              onChange={(e) => updateField("address", e.target.value)}
-              placeholder="123 Business Street&#10;City, Country 12345"
-              rows={3}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+            <div>
+              <Label htmlFor="city">City *</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="state">State *</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="zipCode">Zip Code *</Label>
+              <Input
+                id="zipCode"
+                value={formData.zipCode}
+                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone *</Label>
               <Input
                 id="phone"
-                value={companyInfo.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                placeholder="+964 770 123 4567"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 required
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
-                value={companyInfo.email}
-                onChange={(e) => updateField("email", e.target.value)}
-                placeholder="info@yourcompany.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="website">Website (Optional)</Label>
+            <div>
+              <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
-                value={companyInfo.website || ""}
-                onChange={(e) => updateField("website", e.target.value)}
-                placeholder="www.yourcompany.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tax-id">Tax ID (Optional)</Label>
-              <Input
-                id="tax-id"
-                value={companyInfo.taxId || ""}
-                onChange={(e) => updateField("taxId", e.target.value)}
-                placeholder="TAX-123456789"
+                value={formData.website || ""}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://yourcompany.com"
               />
             </div>
           </div>
 
-          {companyInfo.logo && (
-            <div className="space-y-2">
-              <Label>Logo Preview</Label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <img
-                  src={companyInfo.logo || "/placeholder.svg"}
-                  alt="Company Logo Preview"
-                  className="h-16 w-auto object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : "Save Company Information"}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="submit">Save Changes</Button>
+            <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
