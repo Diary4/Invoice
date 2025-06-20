@@ -98,16 +98,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground text-center">
-              <strong>Demo Credentials:</strong>
-              <br />
-              Username: Nanas
-              <br />
-              Password: Nanas112233
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
