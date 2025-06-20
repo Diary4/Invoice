@@ -1,225 +1,247 @@
 "use client"
 
-import { useState } from "react"
-import type { Customer, Invoice, CompanyInfo } from "../types"
+import { useState, useCallback } from "react"
 import jsPDF from "jspdf"
+import { formatCurrency } from "../lib/currency"
+
+export interface Customer {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  address?: string
+  createdAt: Date
+}
+
+export interface InvoiceItem {
+  id: string
+  description: string
+  quantity: number
+  price: number
+  total: number
+}
+
+export interface Invoice {
+  id: string
+  invoiceNumber: string
+  customerId: string
+  customer: Customer
+  issueDate: Date
+  dueDate: Date
+  items: InvoiceItem[]
+  subtotal: number
+  taxRate: number
+  taxAmount: number
+  total: number
+  currency: string
+  status: "draft" | "sent" | "paid" | "overdue"
+  notes?: string
+  createdAt: Date
+}
+
+export interface CompanyInfo {
+  name: string
+  address: string
+  phone: string
+  email: string
+  website?: string
+  logo?: string
+}
 
 export function useInvoiceSystem() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     name: "Your Company Name",
-    address: "123 Business Street",
-    city: "Business City",
-    state: "BC",
-    zipCode: "12345",
+    address: "123 Business St, City, State 12345",
     phone: "(555) 123-4567",
-    email: "info@yourcompany.com",
-    website: "https://yourcompany.com",
-    logo: "",
+    email: "contact@yourcompany.com",
+    website: "www.yourcompany.com",
+    logo: "/placeholder-logo.png",
   })
 
-  // Customer operations
-  const addCustomer = (customerData: Omit<Customer, "id" | "createdAt">) => {
+  // Customer management
+  const addCustomer = useCallback((customerData: Omit<Customer, "id" | "createdAt">) => {
     const newCustomer: Customer = {
       ...customerData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     }
     setCustomers((prev) => [...prev, newCustomer])
     return newCustomer
-  }
+  }, [])
 
-  const updateCustomer = (id: string, customerData: Partial<Customer>) => {
-    setCustomers((prev) => prev.map((customer) => (customer.id === id ? { ...customer, ...customerData } : customer)))
-  }
+  const updateCustomer = useCallback((id: string, updates: Partial<Customer>) => {
+    setCustomers((prev) => prev.map((customer) => (customer.id === id ? { ...customer, ...updates } : customer)))
+  }, [])
 
-  const deleteCustomer = (id: string) => {
+  const deleteCustomer = useCallback((id: string) => {
     setCustomers((prev) => prev.filter((customer) => customer.id !== id))
-    // Also delete associated invoices
     setInvoices((prev) => prev.filter((invoice) => invoice.customerId !== id))
-  }
+  }, [])
 
-  // Invoice operations
-  const addInvoice = (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
-    const invoiceNumber = `INV-${String(invoices.length + 1).padStart(4, "0")}`
-    const newInvoice: Invoice = {
-      ...invoiceData,
-      id: Date.now().toString(),
-      invoiceNumber,
-      createdAt: new Date().toISOString(),
-    }
-    setInvoices((prev) => [...prev, newInvoice])
-    return newInvoice
-  }
-
-  const updateInvoice = (id: string, invoiceData: Partial<Invoice>) => {
-    setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...invoiceData } : invoice)))
-  }
-
-  const deleteInvoice = (id: string) => {
-    setInvoices((prev) => prev.filter((invoice) => invoice.id !== id))
-  }
-
-  const getInvoicesByCustomer = (customerId: string) => {
-    return invoices.filter((invoice) => invoice.customerId === customerId)
-  }
-
-  const updateCompanyInfo = (info: CompanyInfo) => {
-    setCompanyInfo(info)
-  }
-
-  const generateInvoicePDF = (invoice: Invoice, customer: Customer | undefined) => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.width
-    const pageHeight = doc.internal.pageSize.height
-
-    // Add company logo if available
-    if (companyInfo.logo) {
-      try {
-        const img = new Image()
-        img.crossOrigin = "anonymous"
-        img.onload = () => {
-          doc.addImage(img, "JPEG", 20, 20, 40, 30)
-          generatePDFContent()
-        }
-        img.onerror = () => {
-          generatePDFContent()
-        }
-        img.src = companyInfo.logo
-        return
-      } catch (error) {
-        console.log("Could not add logo to PDF")
+  // Invoice management
+  const addInvoice = useCallback(
+    (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
+      const invoiceNumber = `INV-${String(invoices.length + 1).padStart(4, "0")}`
+      const newInvoice: Invoice = {
+        ...invoiceData,
+        id: Date.now().toString(),
+        invoiceNumber,
+        createdAt: new Date(),
       }
-    }
+      setInvoices((prev) => [...prev, newInvoice])
+      return newInvoice
+    },
+    [invoices.length],
+  )
 
-    generatePDFContent()
+  const updateInvoice = useCallback((id: string, updates: Partial<Invoice>) => {
+    setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...updates } : invoice)))
+  }, [])
 
-    function generatePDFContent() {
-      // Company Information
+  const deleteInvoice = useCallback((id: string) => {
+    setInvoices((prev) => prev.filter((invoice) => invoice.id !== id))
+  }, [])
+
+  // Company info management
+  const updateCompanyInfo = useCallback((updates: Partial<CompanyInfo>) => {
+    setCompanyInfo((prev) => ({ ...prev, ...updates }))
+  }, [])
+
+  // PDF Generation
+  const generateInvoicePDF = useCallback(
+    async (invoice: Invoice) => {
+      const doc = new jsPDF()
+
+      // Add company logo if available
+      if (companyInfo.logo) {
+        try {
+          const img = new Image()
+          img.crossOrigin = "anonymous"
+          await new Promise((resolve, reject) => {
+            img.onload = resolve
+            img.onerror = reject
+            img.src = companyInfo.logo!
+          })
+          doc.addImage(img, "PNG", 20, 20, 40, 40)
+        } catch (error) {
+          console.log("Logo could not be loaded, continuing without logo")
+        }
+      }
+
+      // Company information
       doc.setFontSize(16)
       doc.setFont("helvetica", "bold")
-      doc.text(companyInfo.name, companyInfo.logo ? 70 : 20, 30)
+      doc.text(companyInfo.name, 70, 30)
 
       doc.setFontSize(10)
       doc.setFont("helvetica", "normal")
-      doc.text(companyInfo.address, companyInfo.logo ? 70 : 20, 38)
-      doc.text(`${companyInfo.city}, ${companyInfo.state} ${companyInfo.zipCode}`, companyInfo.logo ? 70 : 20, 44)
-      doc.text(`Phone: ${companyInfo.phone}`, companyInfo.logo ? 70 : 20, 50)
-      doc.text(`Email: ${companyInfo.email}`, companyInfo.logo ? 70 : 20, 56)
+      doc.text(companyInfo.address, 70, 40)
+      doc.text(companyInfo.phone, 70, 47)
+      doc.text(companyInfo.email, 70, 54)
       if (companyInfo.website) {
-        doc.text(`Website: ${companyInfo.website}`, companyInfo.logo ? 70 : 20, 62)
+        doc.text(companyInfo.website, 70, 61)
       }
 
-      // Invoice Title
+      // Invoice title and number
       doc.setFontSize(24)
       doc.setFont("helvetica", "bold")
-      doc.text("INVOICE", pageWidth - 60, 30)
+      doc.text("INVOICE", 20, 90)
 
       doc.setFontSize(12)
       doc.setFont("helvetica", "normal")
-      doc.text(invoice.invoiceNumber, pageWidth - 60, 40)
+      doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 105)
+      doc.text(`Date: ${invoice.issueDate.toLocaleDateString()}`, 20, 115)
+      doc.text(`Due Date: ${invoice.dueDate.toLocaleDateString()}`, 20, 125)
 
-      // Invoice Details
-      const startY = 80
-      doc.setFontSize(12)
+      // Customer information
       doc.setFont("helvetica", "bold")
-      doc.text("Bill To:", 20, startY)
-
+      doc.text("Bill To:", 120, 105)
       doc.setFont("helvetica", "normal")
-      if (customer) {
-        doc.text(customer.name, 20, startY + 8)
-        doc.text(customer.email, 20, startY + 16)
-        if (customer.phone) doc.text(customer.phone, 20, startY + 24)
-        if (customer.address) doc.text(customer.address, 20, startY + 32)
+      doc.text(invoice.customer.name, 120, 115)
+      doc.text(invoice.customer.email, 120, 125)
+      if (invoice.customer.phone) {
+        doc.text(invoice.customer.phone, 120, 135)
+      }
+      if (invoice.customer.address) {
+        doc.text(invoice.customer.address, 120, 145)
       }
 
-      // Invoice Info (right side)
-      doc.text(`Invoice Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, pageWidth - 80, startY + 8)
-      if (invoice.dueDate) {
-        doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, pageWidth - 80, startY + 16)
-      }
-      doc.text(`Status: ${invoice.status.toUpperCase()}`, pageWidth - 80, startY + 24)
-
-      // Items Table Header
-      const tableStartY = startY + 50
-      doc.setFontSize(10)
+      // Items table header
+      const startY = 160
       doc.setFont("helvetica", "bold")
+      doc.setFillColor(240, 240, 240)
+      doc.rect(20, startY, 170, 10, "F")
+      doc.text("Description", 25, startY + 7)
+      doc.text("Qty", 120, startY + 7)
+      doc.text("Price", 140, startY + 7)
+      doc.text("Total", 165, startY + 7)
 
-      // Table header background
-      doc.setFillColor(41, 128, 185)
-      doc.rect(20, tableStartY - 5, pageWidth - 40, 12, "F")
-
-      // Table header text
-      doc.setTextColor(255, 255, 255)
-      doc.text("Description", 25, tableStartY + 2)
-      doc.text("Qty", pageWidth - 120, tableStartY + 2)
-      doc.text("Rate", pageWidth - 80, tableStartY + 2)
-      doc.text("Amount", pageWidth - 40, tableStartY + 2)
-
-      // Table rows
-      doc.setTextColor(0, 0, 0)
+      // Items table content
       doc.setFont("helvetica", "normal")
-      let currentY = tableStartY + 15
+      let currentY = startY + 15
 
       invoice.items.forEach((item, index) => {
-        // Alternate row background
-        if (index % 2 === 0) {
-          doc.setFillColor(245, 245, 245)
-          doc.rect(20, currentY - 5, pageWidth - 40, 12, "F")
+        // Alternating row colors
+        if (index % 2 === 1) {
+          doc.setFillColor(250, 250, 250)
+          doc.rect(20, currentY - 5, 170, 10, "F")
         }
 
-        doc.text(item.description, 25, currentY + 2)
-        doc.text(item.quantity.toString(), pageWidth - 120, currentY + 2)
-        doc.text(`$${item.price.toFixed(2)}`, pageWidth - 80, currentY + 2)
-        doc.text(`$${item.total.toFixed(2)}`, pageWidth - 40, currentY + 2)
-
-        currentY += 12
+        doc.text(item.description, 25, currentY)
+        doc.text(item.quantity.toString(), 125, currentY)
+        doc.text(formatCurrency(item.price, invoice.currency), 145, currentY)
+        doc.text(formatCurrency(item.total, invoice.currency), 170, currentY)
+        currentY += 10
       })
 
-      // Table border
-      doc.setDrawColor(0, 0, 0)
-      doc.rect(20, tableStartY - 5, pageWidth - 40, currentY - tableStartY + 5)
-
-      // Totals
+      // Totals section
       const totalsY = currentY + 20
-      const totalsX = pageWidth - 80
-
       doc.setFont("helvetica", "normal")
-      doc.text(`Subtotal: $${invoice.subtotal.toFixed(2)}`, totalsX, totalsY)
-      doc.text(`Tax (${invoice.taxRate}%): $${invoice.tax.toFixed(2)}`, totalsX, totalsY + 8)
+      doc.text("Subtotal:", 130, totalsY)
+      doc.text(formatCurrency(invoice.subtotal, invoice.currency), 170, totalsY)
+
+      doc.text(`Tax (${invoice.taxRate}%):`, 130, totalsY + 10)
+      doc.text(formatCurrency(invoice.taxAmount, invoice.currency), 170, totalsY + 10)
 
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(14)
-      doc.text(`Total: $${invoice.total.toFixed(2)}`, totalsX, totalsY + 20)
+      doc.text("Total:", 130, totalsY + 20)
+      doc.text(formatCurrency(invoice.total, invoice.currency), 170, totalsY + 20)
 
-      // Notes
+      // Notes section
       if (invoice.notes) {
         doc.setFont("helvetica", "bold")
-        doc.setFontSize(12)
         doc.text("Notes:", 20, totalsY + 40)
-
         doc.setFont("helvetica", "normal")
-        doc.setFontSize(10)
-        const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 40)
+        const splitNotes = doc.splitTextToSize(invoice.notes, 170)
         doc.text(splitNotes, 20, totalsY + 50)
       }
 
       // Footer
-      doc.setFont("helvetica", "italic")
       doc.setFontSize(10)
-      doc.text("Thank you for your business!", pageWidth / 2, pageHeight - 30, { align: "center" })
-      doc.text(`For questions, contact: ${companyInfo.email}`, pageWidth / 2, pageHeight - 20, { align: "center" })
+      doc.setFont("helvetica", "italic")
+      doc.text(`Thank you for your business! For questions, contact us at ${companyInfo.email}`, 20, 280)
 
       // Save the PDF
       doc.save(`${invoice.invoiceNumber}.pdf`)
-    }
+    },
+    [companyInfo],
+  )
+
+  // Statistics
+  const stats = {
+    totalCustomers: customers.length,
+    totalInvoices: invoices.length,
+    totalRevenue: invoices.reduce((sum, invoice) => sum + invoice.total, 0),
+    paidInvoices: invoices.filter((inv) => inv.status === "paid").length,
   }
 
   return {
     customers,
     invoices,
     companyInfo,
+    stats,
     addCustomer,
     updateCustomer,
     deleteCustomer,
@@ -227,7 +249,6 @@ export function useInvoiceSystem() {
     updateInvoice,
     deleteInvoice,
     updateCompanyInfo,
-    getInvoicesByCustomer,
     generateInvoicePDF,
   }
 }

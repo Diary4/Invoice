@@ -4,18 +4,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Eye, Edit, Trash2, Plus, Download } from "lucide-react"
+import { formatCurrency } from "../lib/currency"
 import type { Invoice } from "../types"
 
 interface InvoiceListProps {
   invoices: Invoice[]
-  onView: (invoice: Invoice) => void
-  onEdit: (invoice: Invoice) => void
-  onDelete: (id: string) => void
-  onCreateNew: () => void
+  onViewInvoice: (id: string) => void
+  onEditInvoice: (id: string) => void
+  onDeleteInvoice: (id: string) => void
   onDownloadPDF: (invoice: Invoice) => void
 }
 
-export function InvoiceList({ invoices, onView, onEdit, onDelete, onCreateNew, onDownloadPDF }: InvoiceListProps) {
+export function InvoiceList({
+  invoices,
+  onViewInvoice,
+  onEditInvoice,
+  onDeleteInvoice,
+  onDownloadPDF,
+}: InvoiceListProps) {
   const getStatusColor = (status: Invoice["status"]) => {
     switch (status) {
       case "draft":
@@ -36,7 +42,7 @@ export function InvoiceList({ invoices, onView, onEdit, onDelete, onCreateNew, o
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Invoices ({invoices.length})</CardTitle>
-          <Button onClick={onCreateNew} size="sm">
+          <Button onClick={() => onViewInvoice && onViewInvoice("")} size="sm">
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
           </Button>
@@ -54,27 +60,27 @@ export function InvoiceList({ invoices, onView, onEdit, onDelete, onCreateNew, o
                     <h3 className="font-medium">{invoice.invoiceNumber}</h3>
                     <Badge className={getStatusColor(invoice.status)}>{invoice.status}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{invoice.customerName}</p>
+                  <p className="text-sm text-muted-foreground">{invoice.customer.name}</p>
                   <p className="text-sm text-muted-foreground">
                     Created: {new Date(invoice.createdAt).toLocaleDateString()}
                     {invoice.dueDate && ` • Due: ${new Date(invoice.dueDate).toLocaleDateString()}`}
                   </p>
                 </div>
                 <div className="text-right mr-4">
-                  <p className="font-bold">${invoice.total.toFixed(2)}</p>
+                  <p className="font-bold">{formatCurrency(invoice.total, invoice.currency)}</p>
                   <p className="text-sm text-muted-foreground">{invoice.items.length} items</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => onView(invoice)}>
+                  <Button size="sm" variant="outline" onClick={() => onViewInvoice(invoice.id)}>
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onEdit(invoice)}>
+                  <Button size="sm" variant="outline" onClick={() => onEditInvoice(invoice.id)}>
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => onDownloadPDF(invoice)}>
                     <Download className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onDelete(invoice.id)}>
+                  <Button size="sm" variant="outline" onClick={() => onDeleteInvoice(invoice.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
