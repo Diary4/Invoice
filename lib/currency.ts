@@ -23,6 +23,23 @@ export function formatCurrency(amount: number, currency: Currency): string {
   })}`
 }
 
+export function formatCurrencyForPDF(amount: number, currency: Currency): string {
+  // PDF formatter that uses Latin characters for better compatibility with jsPDF
+  if (currency === "IQD") {
+    // Format IQD without decimals and use "IQD" instead of Arabic symbol
+    return `${amount.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })} IQD`
+  }
+
+  // Format USD with 2 decimal places
+  return `$${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
 export function parseCurrency(value: string): number {
   return Number.parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0
 }

@@ -4,11 +4,17 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Users, Settings, Plus, LogOut, Clock } from "lucide-react"
+import { FileText, Users, Settings, Plus, LogOut, Clock, Receipt } from "lucide-react"
 import { CustomerManager } from "./components/customer-manager"
 import { InvoiceForm } from "./components/invoice-form"
 import { InvoiceList } from "./components/invoice-list"
 import { InvoiceViewer } from "./components/invoice-viewer"
+import { PaymentVoucherForm } from "./components/payment-voucher-form"
+import { ReceiptVoucherForm } from "./components/receipt-voucher-form"
+import { PaymentVoucherList } from "./components/payment-voucher-list"
+import { ReceiptVoucherList } from "./components/receipt-voucher-list"
+import { PaymentVoucherViewer } from "./components/payment-voucher-viewer"
+import { ReceiptVoucherViewer } from "./components/receipt-voucher-viewer"
 import { CompanySettings } from "./components/company-settings"
 import { DashboardStats } from "./components/dashboard-stats"
 import { useInvoiceSystem } from "./hooks/use-invoice-system"
@@ -16,13 +22,30 @@ import { useAuth } from "./hooks/use-auth"
 import { LoginForm } from "./components/login-form"
 import { formatCurrency } from "./lib/currency"
 
-type View = "dashboard" | "customers" | "create-invoice" | "invoices" | "view-invoice" | "edit-invoice" | "settings"
+type View =
+  | "dashboard"
+  | "customers"
+  | "create-invoice"
+  | "invoices"
+  | "view-invoice"
+  | "edit-invoice"
+  | "create-payment-voucher"
+  | "payment-vouchers"
+  | "view-payment-voucher"
+  | "edit-payment-voucher"
+  | "create-receipt-voucher"
+  | "receipt-vouchers"
+  | "view-receipt-voucher"
+  | "edit-receipt-voucher"
+  | "settings"
 
 export default function InvoiceSystem() {
   const { user, login, logout, isAuthenticated, isLoading: authLoading } = useAuth()
   const {
     customers,
     invoices,
+    paymentVouchers,
+    receiptVouchers,
     companyInfo,
     addCustomer,
     updateCustomer,
@@ -30,12 +53,22 @@ export default function InvoiceSystem() {
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    addPaymentVoucher,
+    updatePaymentVoucher,
+    deletePaymentVoucher,
+    addReceiptVoucher,
+    updateReceiptVoucher,
+    deleteReceiptVoucher,
     updateCompanyInfo,
     generateInvoicePDF,
+    generatePaymentVoucherPDF,
+    generateReceiptVoucherPDF,
   } = useInvoiceSystem()
 
   const [currentView, setCurrentView] = useState<View>("dashboard")
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
+  const [selectedPaymentVoucherId, setSelectedPaymentVoucherId] = useState<string | null>(null)
+  const [selectedReceiptVoucherId, setSelectedReceiptVoucherId] = useState<string | null>(null)
 
   // Show loading screen while checking authentication
   if (authLoading) {
@@ -87,7 +120,77 @@ export default function InvoiceSystem() {
     }
   }
 
+  // Payment Voucher handlers
+  const handleViewPaymentVoucher = (id: string) => {
+    setSelectedPaymentVoucherId(id)
+    setCurrentView("view-payment-voucher")
+  }
+
+  const handleEditPaymentVoucher = (id: string) => {
+    setSelectedPaymentVoucherId(id)
+    setCurrentView("edit-payment-voucher")
+  }
+
+  const handleCreatePaymentVoucher = (voucherData: any) => {
+    addPaymentVoucher(voucherData)
+    setCurrentView("payment-vouchers")
+  }
+
+  const handleUpdatePaymentVoucher = (voucherData: any) => {
+    if (selectedPaymentVoucherId) {
+      updatePaymentVoucher(selectedPaymentVoucherId, voucherData)
+      setCurrentView("payment-vouchers")
+    }
+  }
+
+  const handleCreatePaymentVoucherClick = () => {
+    if (customers.length === 0) {
+      alert("Please add at least one customer before creating a payment voucher.")
+      setCurrentView("customers")
+    } else {
+      setCurrentView("create-payment-voucher")
+    }
+  }
+
+  // Receipt Voucher handlers
+  const handleViewReceiptVoucher = (id: string) => {
+    setSelectedReceiptVoucherId(id)
+    setCurrentView("view-receipt-voucher")
+  }
+
+  const handleEditReceiptVoucher = (id: string) => {
+    setSelectedReceiptVoucherId(id)
+    setCurrentView("edit-receipt-voucher")
+  }
+
+  const handleCreateReceiptVoucher = (voucherData: any) => {
+    addReceiptVoucher(voucherData)
+    setCurrentView("receipt-vouchers")
+  }
+
+  const handleUpdateReceiptVoucher = (voucherData: any) => {
+    if (selectedReceiptVoucherId) {
+      updateReceiptVoucher(selectedReceiptVoucherId, voucherData)
+      setCurrentView("receipt-vouchers")
+    }
+  }
+
+  const handleCreateReceiptVoucherClick = () => {
+    if (customers.length === 0) {
+      alert("Please add at least one customer before creating a receipt voucher.")
+      setCurrentView("customers")
+    } else {
+      setCurrentView("create-receipt-voucher")
+    }
+  }
+
   const selectedInvoice = selectedInvoiceId ? invoices.find((inv) => inv.id === selectedInvoiceId) : null
+  const selectedPaymentVoucher = selectedPaymentVoucherId
+    ? paymentVouchers.find((v) => v.id === selectedPaymentVoucherId)
+    : null
+  const selectedReceiptVoucher = selectedReceiptVoucherId
+    ? receiptVouchers.find((v) => v.id === selectedReceiptVoucherId)
+    : null
 
   const renderContent = () => {
     switch (currentView) {
@@ -138,7 +241,7 @@ export default function InvoiceSystem() {
         return selectedInvoice ? (
           <InvoiceForm
             customers={customers}
-            invoice={selectedInvoice}
+            invoice={selectedInvoice as any}
             onSave={handleUpdateInvoice}
             onCancel={() => setCurrentView("invoices")}
           />
@@ -156,7 +259,7 @@ export default function InvoiceSystem() {
       case "invoices":
         return (
           <InvoiceList
-            invoices={invoices}
+            invoices={invoices as any}
             onViewInvoice={handleViewInvoice}
             onEditInvoice={handleEditInvoice}
             onDeleteInvoice={deleteInvoice}
@@ -166,7 +269,7 @@ export default function InvoiceSystem() {
       case "view-invoice":
         return selectedInvoice ? (
           <InvoiceViewer
-            invoice={selectedInvoice}
+            invoice={selectedInvoice as any}
             companyInfo={companyInfo}
             onEdit={() => handleEditInvoice(selectedInvoice.id)}
             onDownloadPDF={() => generateInvoicePDF(selectedInvoice)}
@@ -180,6 +283,172 @@ export default function InvoiceSystem() {
             </CardHeader>
             <CardContent>
               <Button onClick={() => setCurrentView("invoices")}>Back to Invoices</Button>
+            </CardContent>
+          </Card>
+        )
+      case "create-payment-voucher":
+        if (customers.length === 0) {
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Customers Available</CardTitle>
+                <CardDescription>You need to add at least one customer before creating a payment voucher.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  To create a payment voucher, you first need to have customers in your system. Click the button below
+                  to add your first customer.
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={() => setCurrentView("customers")}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Add Customer
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }
+        return (
+          <PaymentVoucherForm
+            customers={customers}
+            onSave={handleCreatePaymentVoucher}
+            onCancel={() => setCurrentView("dashboard")}
+          />
+        )
+      case "edit-payment-voucher":
+        return selectedPaymentVoucher ? (
+          <PaymentVoucherForm
+            customers={customers}
+            voucher={selectedPaymentVoucher}
+            onSave={handleUpdatePaymentVoucher}
+            onCancel={() => setCurrentView("payment-vouchers")}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Voucher Not Found</CardTitle>
+              <CardDescription>The payment voucher you're trying to edit could not be found.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setCurrentView("payment-vouchers")}>Back to Payment Vouchers</Button>
+            </CardContent>
+          </Card>
+        )
+      case "payment-vouchers":
+        return (
+          <PaymentVoucherList
+            vouchers={paymentVouchers}
+            onViewVoucher={handleViewPaymentVoucher}
+            onEditVoucher={handleEditPaymentVoucher}
+            onDeleteVoucher={deletePaymentVoucher}
+            onDownloadPDF={generatePaymentVoucherPDF}
+            onCreateVoucher={handleCreatePaymentVoucherClick}
+          />
+        )
+      case "view-payment-voucher":
+        return selectedPaymentVoucher ? (
+          <PaymentVoucherViewer
+            voucher={selectedPaymentVoucher}
+            companyInfo={companyInfo}
+            onEdit={() => handleEditPaymentVoucher(selectedPaymentVoucher.id)}
+            onDownloadPDF={() => generatePaymentVoucherPDF(selectedPaymentVoucher)}
+            onBack={() => setCurrentView("payment-vouchers")}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Voucher Not Found</CardTitle>
+              <CardDescription>The payment voucher you're trying to view could not be found.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setCurrentView("payment-vouchers")}>Back to Payment Vouchers</Button>
+            </CardContent>
+          </Card>
+        )
+      case "create-receipt-voucher":
+        if (customers.length === 0) {
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Customers Available</CardTitle>
+                <CardDescription>You need to add at least one customer before creating a receipt voucher.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  To create a receipt voucher, you first need to have customers in your system. Click the button below
+                  to add your first customer.
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={() => setCurrentView("customers")}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Add Customer
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }
+        return (
+          <ReceiptVoucherForm
+            customers={customers}
+            onSave={handleCreateReceiptVoucher}
+            onCancel={() => setCurrentView("dashboard")}
+          />
+        )
+      case "edit-receipt-voucher":
+        return selectedReceiptVoucher ? (
+          <ReceiptVoucherForm
+            customers={customers}
+            voucher={selectedReceiptVoucher}
+            onSave={handleUpdateReceiptVoucher}
+            onCancel={() => setCurrentView("receipt-vouchers")}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Receipt Voucher Not Found</CardTitle>
+              <CardDescription>The receipt voucher you're trying to edit could not be found.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setCurrentView("receipt-vouchers")}>Back to Receipt Vouchers</Button>
+            </CardContent>
+          </Card>
+        )
+      case "receipt-vouchers":
+        return (
+          <ReceiptVoucherList
+            vouchers={receiptVouchers}
+            onViewVoucher={handleViewReceiptVoucher}
+            onEditVoucher={handleEditReceiptVoucher}
+            onDeleteVoucher={deleteReceiptVoucher}
+            onDownloadPDF={generateReceiptVoucherPDF}
+            onCreateVoucher={handleCreateReceiptVoucherClick}
+          />
+        )
+      case "view-receipt-voucher":
+        return selectedReceiptVoucher ? (
+          <ReceiptVoucherViewer
+            voucher={selectedReceiptVoucher}
+            companyInfo={companyInfo}
+            onEdit={() => handleEditReceiptVoucher(selectedReceiptVoucher.id)}
+            onDownloadPDF={() => generateReceiptVoucherPDF(selectedReceiptVoucher)}
+            onBack={() => setCurrentView("receipt-vouchers")}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Receipt Voucher Not Found</CardTitle>
+              <CardDescription>The receipt voucher you're trying to view could not be found.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setCurrentView("receipt-vouchers")}>Back to Receipt Vouchers</Button>
             </CardContent>
           </Card>
         )
@@ -244,6 +513,36 @@ export default function InvoiceSystem() {
 
               <Card
                 className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20"
+                onClick={handleCreatePaymentVoucherClick}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Receipt className="h-5 w-5 text-purple-600" />
+                    </div>
+                    Payment Voucher
+                  </CardTitle>
+                  <CardDescription>Create a payment voucher to record outgoing payments</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20"
+                onClick={handleCreateReceiptVoucherClick}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Receipt className="h-5 w-5 text-orange-600" />
+                    </div>
+                    Receipt Voucher
+                  </CardTitle>
+                  <CardDescription>Create a receipt voucher to record incoming payments</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20"
                 onClick={() => setCurrentView("customers")}
               >
                 <CardHeader>
@@ -298,7 +597,7 @@ export default function InvoiceSystem() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{formatCurrency(invoice.total, invoice.currency)}</p>
+                          <p className="font-medium">{formatCurrency(invoice.total, invoice.currency as "USD" | "IQD")}</p>
                           <Badge
                             variant={
                               invoice.status === "paid"
@@ -361,6 +660,22 @@ export default function InvoiceSystem() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Invoice
+                </Button>
+                <Button
+                  variant={currentView === "payment-vouchers" ? "default" : "ghost"}
+                  onClick={() => setCurrentView("payment-vouchers")}
+                  size="sm"
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Payment Vouchers
+                </Button>
+                <Button
+                  variant={currentView === "receipt-vouchers" ? "default" : "ghost"}
+                  onClick={() => setCurrentView("receipt-vouchers")}
+                  size="sm"
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Receipt Vouchers
                 </Button>
                 <Button
                   variant={currentView === "settings" ? "default" : "ghost"}

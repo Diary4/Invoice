@@ -40,6 +40,39 @@ export interface CompanyInfo {
   email: string
   website?: string
   logo?: string
+  primaryColor?: string
+}
+
+export interface PaymentVoucher {
+  id: string
+  voucherNumber: string
+  customerId: string
+  customer: Customer
+  paymentDate: Date
+  currency: "USD" | "IQD"
+  amount: number
+  paymentMethod?: string
+  referenceNumber?: string
+  description?: string
+  status: "draft" | "completed" | "cancelled"
+  notes?: string
+  createdAt: Date
+}
+
+export interface ReceiptVoucher {
+  id: string
+  voucherNumber: string
+  customerId: string
+  customer: Customer
+  receiptDate: Date
+  currency: "USD" | "IQD"
+  amount: number
+  paymentMethod?: string
+  referenceNumber?: string
+  description?: string
+  status: "draft" | "completed" | "cancelled"
+  notes?: string
+  createdAt: Date
 }
 
 export interface User {

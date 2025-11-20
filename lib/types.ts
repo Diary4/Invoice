@@ -34,3 +34,37 @@ export interface Invoice {
   created_at?: string
   updated_at?: string
 }
+
+export interface PaymentVoucher {
+  id?: number
+  voucher_number: string
+  customer_id: number
+  customer?: Customer
+  payment_date: string
+  currency: "USD" | "IQD"
+  amount: number
+  payment_method?: string
+  reference_number?: string
+  description?: string
+  status: "draft" | "completed" | "cancelled"
+  notes?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ReceiptVoucher {
+  id?: number
+  voucher_number: string
+  customer_id: number
+  customer?: Customer
+  receipt_date: string
+  currency: "USD" | "IQD"
+  amount: number
+  payment_method?: string
+  reference_number?: string
+  description?: string
+  status: "draft" | "completed" | "cancelled"
+  notes?: string
+  created_at?: string
+  updated_at?: string
+}

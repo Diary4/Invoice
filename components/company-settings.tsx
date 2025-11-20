@@ -75,8 +75,18 @@ export function CompanySettings({ companyInfo, onSave, onCancel }: CompanySettin
                   </div>
                 )}
                 <div>
-                  <h3 className="text-2xl font-semibold">{companyInfo.name}</h3>
+                  <h3
+                    className="text-2xl font-semibold"
+                    style={companyInfo.primaryColor ? { color: companyInfo.primaryColor } : {}}
+                  >
+                    {companyInfo.name}
+                  </h3>
                   <p className="text-lg text-muted-foreground">{companyInfo.email}</p>
+                  {companyInfo.primaryColor && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      PDF Color: <span style={{ color: companyInfo.primaryColor }}>{companyInfo.primaryColor}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -127,6 +137,29 @@ export function CompanySettings({ companyInfo, onSave, onCancel }: CompanySettin
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="primaryColor">Company Name Color (for PDFs)</Label>
+                <div className="flex items-center gap-3 mt-2">
+                  <Input
+                    id="primaryColor"
+                    type="color"
+                    value={formData.primaryColor || "#000000"}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, primaryColor: e.target.value }))}
+                    className="w-20 h-10 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={formData.primaryColor || "#000000"}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, primaryColor: e.target.value }))}
+                    placeholder="#000000"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This color will be applied to the company name in all generated PDFs
+                </p>
               </div>
 
               <div>
