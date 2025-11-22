@@ -34,16 +34,18 @@ export async function POST(request: Request) {
       description,
       status,
       notes,
+      delivered_by,
+      received_by,
     } = voucherData
 
     const [voucher] = await sql`
       INSERT INTO receipt_vouchers (
         voucher_number, customer_id, receipt_date, currency,
-        amount, payment_method, reference_number, description, status, notes
+        amount, payment_method, reference_number, description, status, notes, delivered_by, received_by
       )
       VALUES (
         ${voucher_number}, ${customer_id || null}, ${receipt_date}, ${currency},
-        ${amount}, ${payment_method}, ${reference_number}, ${description}, ${status}, ${notes}
+        ${amount}, ${payment_method}, ${reference_number}, ${description}, ${status}, ${notes}, ${delivered_by || null}, ${received_by || null}
       )
       RETURNING *
     `

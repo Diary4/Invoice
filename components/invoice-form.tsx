@@ -24,10 +24,10 @@ function formatCurrency(amount: number, currency: "USD" | "IQD") {
 }
 
 export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFormProps) {
-  const [customerId, setCustomerId] = useState(invoice?.customerId || "")
+  const [customerId, setCustomerId] = useState(invoice?.customerId || "__none__")
   
   const handleCustomerChange = (value: string) => {
-    setCustomerId(value === "" ? "" : value)
+    setCustomerId(value)
   }
   const [items, setItems] = useState<Omit<InvoiceItem, "id">[]>(
     invoice?.items.map((item) => ({
@@ -77,10 +77,10 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedCustomer = customerId ? customers.find((c) => c.id === customerId) : null
+    const selectedCustomer = customerId && customerId !== "__none__" ? customers.find((c) => c.id === customerId) : null
 
     const invoiceData = {
-      customerId: customerId || null,
+      customerId: customerId && customerId !== "__none__" ? customerId : null,
       customer: selectedCustomer || undefined,
       items: items.map((item, index) => ({
         ...item,
@@ -115,7 +115,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}

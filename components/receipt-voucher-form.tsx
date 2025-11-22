@@ -19,10 +19,10 @@ interface ReceiptVoucherFormProps {
 }
 
 export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: ReceiptVoucherFormProps) {
-  const [customerId, setCustomerId] = useState(voucher?.customerId || "")
+  const [customerId, setCustomerId] = useState(voucher?.customerId || "__none__")
   
   const handleCustomerChange = (value: string) => {
-    setCustomerId(value === "" ? "" : value)
+    setCustomerId(value)
   }
   const [receiptDate, setReceiptDate] = useState(
     voucher?.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
@@ -34,14 +34,16 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
   const [description, setDescription] = useState(voucher?.description || "")
   const [status, setStatus] = useState<ReceiptVoucher["status"]>(voucher?.status || "draft")
   const [notes, setNotes] = useState(voucher?.notes || "")
+  const [deliveredBy, setDeliveredBy] = useState(voucher?.deliveredBy || voucher?.delivered_by || "")
+  const [receivedBy, setReceivedBy] = useState(voucher?.receivedBy || voucher?.received_by || "")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedCustomer = customerId ? customers.find((c) => c.id === customerId) : null
+    const selectedCustomer = customerId && customerId !== "__none__" ? customers.find((c) => c.id === customerId) : null
 
     const voucherData = {
-      customerId: customerId || null,
+      customerId: customerId && customerId !== "__none__" ? customerId : null,
       customer: selectedCustomer || undefined,
       receiptDate: new Date(receiptDate),
       currency,
@@ -51,6 +53,8 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
       description: description || undefined,
       status,
       notes: notes || undefined,
+      deliveredBy: deliveredBy || undefined,
+      receivedBy: receivedBy || undefined,
     }
 
     onSave(voucherData)
@@ -71,7 +75,7 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
@@ -171,6 +175,27 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional notes..."
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="deliveredBy">Delivered By</Label>
+              <Input
+                id="deliveredBy"
+                value={deliveredBy}
+                onChange={(e) => setDeliveredBy(e.target.value)}
+                placeholder="Name of person delivering"
+              />
+            </div>
+            <div>
+              <Label htmlFor="receivedBy">Received By</Label>
+              <Input
+                id="receivedBy"
+                value={receivedBy}
+                onChange={(e) => setReceivedBy(e.target.value)}
+                placeholder="Name of person receiving"
+              />
+            </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">

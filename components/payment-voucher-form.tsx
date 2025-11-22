@@ -19,10 +19,10 @@ interface PaymentVoucherFormProps {
 }
 
 export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: PaymentVoucherFormProps) {
-  const [customerId, setCustomerId] = useState(voucher?.customerId || "")
+  const [customerId, setCustomerId] = useState(voucher?.customerId || "__none__")
   
   const handleCustomerChange = (value: string) => {
-    setCustomerId(value === "" ? "" : value)
+    setCustomerId(value)
   }
   const [paymentDate, setPaymentDate] = useState(
     voucher?.paymentDate ? new Date(voucher.paymentDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
@@ -38,10 +38,10 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedCustomer = customerId ? customers.find((c) => c.id === customerId) : null
+    const selectedCustomer = customerId && customerId !== "__none__" ? customers.find((c) => c.id === customerId) : null
 
     const voucherData = {
-      customerId: customerId || null,
+      customerId: customerId && customerId !== "__none__" ? customerId : null,
       customer: selectedCustomer || undefined,
       paymentDate: new Date(paymentDate),
       currency,
@@ -71,7 +71,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}

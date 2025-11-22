@@ -65,6 +65,8 @@ export interface ReceiptVoucher {
   description?: string
   status: "draft" | "completed" | "cancelled"
   notes?: string
+  delivered_by?: string
+  received_by?: string
   created_at?: string
   updated_at?: string
 }

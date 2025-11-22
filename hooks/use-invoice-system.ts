@@ -514,6 +514,10 @@ export function useInvoiceSystem() {
       }
 
       // Notes
+      let signatureY = amountY + 30
+      if (voucher.description) {
+        signatureY += 30
+      }
       if (voucher.notes) {
         const notesY = amountY + (voucher.description ? 60 : 40)
         doc.setFont("helvetica", "bold")
@@ -521,12 +525,44 @@ export function useInvoiceSystem() {
         doc.setFont("helvetica", "normal")
         const splitNotes = doc.splitTextToSize(voucher.notes, 170)
         doc.text(splitNotes, 20, notesY + 10)
+        signatureY = notesY + 20 + (splitNotes.length * 5)
+      }
+
+      // Signature section
+      const signatureStartY = Math.max(signatureY, 220)
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      
+      // Delivered By section
+      if (voucher.deliveredBy) {
+        doc.text(voucher.deliveredBy, 20, signatureStartY)
+        // Signature line
+        doc.line(20, signatureStartY + 5, 90, signatureStartY + 5)
+        doc.setFontSize(8)
+        doc.text("Signature", 20, signatureStartY + 10)
+        // Date line
+        doc.line(20, signatureStartY + 15, 90, signatureStartY + 15)
+        doc.text("Date", 20, signatureStartY + 20)
+      }
+      
+      // Received By section
+      if (voucher.receivedBy) {
+        doc.setFontSize(10)
+        doc.text(voucher.receivedBy, 120, signatureStartY)
+        // Signature line
+        doc.line(120, signatureStartY + 5, 190, signatureStartY + 5)
+        doc.setFontSize(8)
+        doc.text("Signature", 120, signatureStartY + 10)
+        // Date line
+        doc.line(120, signatureStartY + 15, 190, signatureStartY + 15)
+        doc.text("Date", 120, signatureStartY + 20)
       }
 
       // Footer
+      const footerY = signatureStartY + 30
       doc.setFontSize(10)
       doc.setFont("helvetica", "italic")
-      doc.text(`Thank you for your payment! For questions, contact us at ${companyInfo.email}`, 20, 280)
+      doc.text(`Thank you for your payment! For questions, contact us at ${companyInfo.email}`, 20, footerY)
 
       // Save the PDF
       doc.save(`${voucher.voucherNumber}.pdf`)
