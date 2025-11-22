@@ -18,8 +18,8 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string
   invoiceNumber: string
-  customerId: string
-  customer: Customer
+  customerId?: string | null
+  customer?: Customer
   items: InvoiceItem[]
   subtotal: number
   taxRate: number
@@ -46,8 +46,8 @@ export interface CompanyInfo {
 export interface PaymentVoucher {
   id: string
   voucherNumber: string
-  customerId: string
-  customer: Customer
+  customerId?: string | null
+  customer?: Customer
   paymentDate: Date
   currency: "USD" | "IQD"
   amount: number
@@ -62,8 +62,8 @@ export interface PaymentVoucher {
 export interface ReceiptVoucher {
   id: string
   voucherNumber: string
-  customerId: string
-  customer: Customer
+  customerId?: string | null
+  customer?: Customer
   receiptDate: Date
   currency: "USD" | "IQD"
   amount: number

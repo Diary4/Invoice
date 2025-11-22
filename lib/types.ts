@@ -19,7 +19,7 @@ export interface InvoiceItem {
 export interface Invoice {
   id?: number
   invoice_number: string
-  customer_id: number
+  customer_id?: number | null
   customer?: Customer
   issue_date: string
   due_date: string
@@ -38,7 +38,7 @@ export interface Invoice {
 export interface PaymentVoucher {
   id?: number
   voucher_number: string
-  customer_id: number
+  customer_id?: number | null
   customer?: Customer
   payment_date: string
   currency: "USD" | "IQD"
@@ -55,7 +55,7 @@ export interface PaymentVoucher {
 export interface ReceiptVoucher {
   id?: number
   voucher_number: string
-  customer_id: number
+  customer_id?: number | null
   customer?: Customer
   receipt_date: string
   currency: "USD" | "IQD"

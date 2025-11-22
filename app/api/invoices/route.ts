@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         subtotal, tax_rate, tax_amount, total, status, notes
       )
       VALUES (
-        ${invoice_number}, ${customer_id}, ${issue_date}, ${due_date}, ${currency},
+        ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency},
         ${subtotal}, ${tax_rate}, ${tax_amount}, ${total}, ${status}, ${notes}
       )
       RETURNING *

@@ -109,15 +109,9 @@ export default function InvoiceSystem() {
     }
   }
 
-  // Handle create invoice navigation with customer check
+  // Handle create invoice navigation
   const handleCreateInvoiceClick = () => {
-    if (customers.length === 0) {
-      // If no customers, redirect to customers page first
-      alert("Please add at least one customer before creating an invoice.")
-      setCurrentView("customers")
-    } else {
-      setCurrentView("create-invoice")
-    }
+    setCurrentView("create-invoice")
   }
 
   // Payment Voucher handlers
@@ -144,12 +138,7 @@ export default function InvoiceSystem() {
   }
 
   const handleCreatePaymentVoucherClick = () => {
-    if (customers.length === 0) {
-      alert("Please add at least one customer before creating a payment voucher.")
-      setCurrentView("customers")
-    } else {
-      setCurrentView("create-payment-voucher")
-    }
+    setCurrentView("create-payment-voucher")
   }
 
   // Receipt Voucher handlers
@@ -176,12 +165,7 @@ export default function InvoiceSystem() {
   }
 
   const handleCreateReceiptVoucherClick = () => {
-    if (customers.length === 0) {
-      alert("Please add at least one customer before creating a receipt voucher.")
-      setCurrentView("customers")
-    } else {
-      setCurrentView("create-receipt-voucher")
-    }
+    setCurrentView("create-receipt-voucher")
   }
 
   const selectedInvoice = selectedInvoiceId ? invoices.find((inv) => inv.id === selectedInvoiceId) : null
@@ -204,32 +188,6 @@ export default function InvoiceSystem() {
           />
         )
       case "create-invoice":
-        // Show message if no customers exist
-        if (customers.length === 0) {
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle>No Customers Available</CardTitle>
-                <CardDescription>You need to add at least one customer before creating an invoice.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  To create an invoice, you first need to have customers in your system. Click the button below to add
-                  your first customer.
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setCurrentView("customers")}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Add Customer
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
         return (
           <InvoiceForm
             customers={customers}
@@ -287,31 +245,6 @@ export default function InvoiceSystem() {
           </Card>
         )
       case "create-payment-voucher":
-        if (customers.length === 0) {
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle>No Customers Available</CardTitle>
-                <CardDescription>You need to add at least one customer before creating a payment voucher.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  To create a payment voucher, you first need to have customers in your system. Click the button below
-                  to add your first customer.
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setCurrentView("customers")}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Add Customer
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
         return (
           <PaymentVoucherForm
             customers={customers}
@@ -370,31 +303,6 @@ export default function InvoiceSystem() {
           </Card>
         )
       case "create-receipt-voucher":
-        if (customers.length === 0) {
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle>No Customers Available</CardTitle>
-                <CardDescription>You need to add at least one customer before creating a receipt voucher.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  To create a receipt voucher, you first need to have customers in your system. Click the button below
-                  to add your first customer.
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setCurrentView("customers")}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Add Customer
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
         return (
           <ReceiptVoucherForm
             customers={customers}
@@ -488,11 +396,7 @@ export default function InvoiceSystem() {
                     </div>
                     Create Invoice
                   </CardTitle>
-                  <CardDescription>
-                    {customers.length === 0
-                      ? "Add customers first, then create invoices with USD or IQD support"
-                      : "Generate a new invoice for your customers with USD or IQD support"}
-                  </CardDescription>
+                  <CardDescription>Generate a new invoice with USD or IQD support</CardDescription>
                 </CardHeader>
               </Card>
 
@@ -570,14 +474,6 @@ export default function InvoiceSystem() {
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No invoices yet. Create your first invoice to get started!</p>
-                    {customers.length === 0 && (
-                      <p className="text-sm mt-2">
-                        <Button variant="link" onClick={() => setCurrentView("customers")} className="p-0 h-auto">
-                          Add customers first
-                        </Button>{" "}
-                        to start creating invoices.
-                      </p>
-                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -593,7 +489,7 @@ export default function InvoiceSystem() {
                           </div>
                           <div>
                             <p className="font-medium">{invoice.invoiceNumber}</p>
-                            <p className="text-sm text-muted-foreground">{invoice.customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{invoice.customer?.name || "No customer"}</p>
                           </div>
                         </div>
                         <div className="text-right">

@@ -34,12 +34,11 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedCustomer = customers.find((c) => c.id === customerId)
-    if (!selectedCustomer) return
+    const selectedCustomer = customerId ? customers.find((c) => c.id === customerId) : null
 
     const voucherData = {
-      customerId,
-      customer: selectedCustomer,
+      customerId: customerId || null,
+      customer: selectedCustomer || undefined,
       receiptDate: new Date(receiptDate),
       currency,
       amount,
@@ -62,12 +61,13 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customer">Customer *</Label>
-              <Select value={customerId} onValueChange={setCustomerId} required>
+              <Label htmlFor="customer">Customer</Label>
+              <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
+                  <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">None</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}

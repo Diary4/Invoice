@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         amount, payment_method, reference_number, description, status, notes
       )
       VALUES (
-        ${voucher_number}, ${customer_id}, ${receipt_date}, ${currency},
+        ${voucher_number}, ${customer_id || null}, ${receipt_date}, ${currency},
         ${amount}, ${payment_method}, ${reference_number}, ${description}, ${status}, ${notes}
       )
       RETURNING *

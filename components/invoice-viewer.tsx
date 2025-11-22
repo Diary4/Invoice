@@ -99,15 +99,17 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
 
           {/* Invoice Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-semibold text-primary mb-3">Bill To:</h3>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="font-semibold text-lg">{invoice.customer.name}</p>
-                <p className="text-muted-foreground">{invoice.customer.email}</p>
-                {invoice.customer.phone && <p className="text-muted-foreground">{invoice.customer.phone}</p>}
-                {invoice.customer.address && <p className="text-muted-foreground">{invoice.customer.address}</p>}
+            {invoice.customer && (
+              <div>
+                <h3 className="font-semibold text-primary mb-3">Bill To:</h3>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-semibold text-lg">{invoice.customer.name}</p>
+                  <p className="text-muted-foreground">{invoice.customer.email}</p>
+                  {invoice.customer.phone && <p className="text-muted-foreground">{invoice.customer.phone}</p>}
+                  {invoice.customer.address && <p className="text-muted-foreground">{invoice.customer.address}</p>}
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Issue Date:</span>

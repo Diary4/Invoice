@@ -62,7 +62,7 @@ export function PaymentVoucherList({
                     <h3 className="font-medium">{voucher.voucherNumber}</h3>
                     <Badge className={getStatusColor(voucher.status)}>{voucher.status}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{voucher.customer.name}</p>
+                  <p className="text-sm text-muted-foreground">{voucher.customer?.name || "No customer"}</p>
                   <p className="text-sm text-muted-foreground">
                     Date: {new Date(voucher.paymentDate).toLocaleDateString()}
                     {voucher.paymentMethod && ` • Method: ${voucher.paymentMethod}`}

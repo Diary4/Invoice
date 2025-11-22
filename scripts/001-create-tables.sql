@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS invoices (
   id SERIAL PRIMARY KEY,
   invoice_number VARCHAR(50) UNIQUE NOT NULL,
-  customer_id INTEGER REFERENCES customers(id),
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
   issue_date DATE NOT NULL,
   due_date DATE NOT NULL,
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',

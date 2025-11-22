@@ -60,7 +60,7 @@ export function InvoiceList({
                     <h3 className="font-medium">{invoice.invoiceNumber}</h3>
                     <Badge className={getStatusColor(invoice.status)}>{invoice.status}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{invoice.customer.name}</p>
+                  <p className="text-sm text-muted-foreground">{invoice.customer?.name || "No customer"}</p>
                   <p className="text-sm text-muted-foreground">
                     Created: {new Date(invoice.createdAt).toLocaleDateString()}
                     {invoice.dueDate && ` • Due: ${new Date(invoice.dueDate).toLocaleDateString()}`}

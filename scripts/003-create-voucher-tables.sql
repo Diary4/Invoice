@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS payment_vouchers (
   id SERIAL PRIMARY KEY,
   voucher_number VARCHAR(50) UNIQUE NOT NULL,
-  customer_id INTEGER REFERENCES customers(id),
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
   payment_date DATE NOT NULL,
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',
   amount DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS payment_vouchers (
 CREATE TABLE IF NOT EXISTS receipt_vouchers (
   id SERIAL PRIMARY KEY,
   voucher_number VARCHAR(50) UNIQUE NOT NULL,
-  customer_id INTEGER REFERENCES customers(id),
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
   receipt_date DATE NOT NULL,
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',
   amount DECIMAL(12,2) NOT NULL DEFAULT 0,

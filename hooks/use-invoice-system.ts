@@ -25,8 +25,8 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string
   invoiceNumber: string
-  customerId: string
-  customer: Customer
+  customerId?: string | null
+  customer?: Customer
   issueDate: Date
   dueDate: Date
   items: InvoiceItem[]
@@ -217,16 +217,18 @@ export function useInvoiceSystem() {
       doc.text(`Due Date: ${invoice.dueDate.toLocaleDateString()}`, 20, 125)
 
       // Customer information
-      doc.setFont("helvetica", "bold")
-      doc.text("Bill To:", 120, 105)
-      doc.setFont("helvetica", "normal")
-      doc.text(invoice.customer.name, 120, 115)
-      doc.text(invoice.customer.email, 120, 125)
-      if (invoice.customer.phone) {
-        doc.text(invoice.customer.phone, 120, 135)
-      }
-      if (invoice.customer.address) {
-        doc.text(invoice.customer.address, 120, 145)
+      if (invoice.customer) {
+        doc.setFont("helvetica", "bold")
+        doc.text("Bill To:", 120, 105)
+        doc.setFont("helvetica", "normal")
+        doc.text(invoice.customer.name, 120, 115)
+        doc.text(invoice.customer.email, 120, 125)
+        if (invoice.customer.phone) {
+          doc.text(invoice.customer.phone, 120, 135)
+        }
+        if (invoice.customer.address) {
+          doc.text(invoice.customer.address, 120, 145)
+        }
       }
 
       // Items table header
@@ -342,16 +344,18 @@ export function useInvoiceSystem() {
       doc.text(`Date: ${new Date(voucher.paymentDate).toLocaleDateString()}`, 20, 115)
 
       // Customer information
-      doc.setFont("helvetica", "bold")
-      doc.text("Paid To:", 120, 105)
-      doc.setFont("helvetica", "normal")
-      doc.text(voucher.customer.name, 120, 115)
-      doc.text(voucher.customer.email, 120, 125)
-      if (voucher.customer.phone) {
-        doc.text(voucher.customer.phone, 120, 135)
-      }
-      if (voucher.customer.address) {
-        doc.text(voucher.customer.address, 120, 145)
+      if (voucher.customer) {
+        doc.setFont("helvetica", "bold")
+        doc.text("Paid To:", 120, 105)
+        doc.setFont("helvetica", "normal")
+        doc.text(voucher.customer.name, 120, 115)
+        doc.text(voucher.customer.email, 120, 125)
+        if (voucher.customer.phone) {
+          doc.text(voucher.customer.phone, 120, 135)
+        }
+        if (voucher.customer.address) {
+          doc.text(voucher.customer.address, 120, 145)
+        }
       }
 
       // Payment details

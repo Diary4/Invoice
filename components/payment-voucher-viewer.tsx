@@ -97,15 +97,17 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
 
           {/* Voucher Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-semibold text-primary mb-3">Paid To:</h3>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="font-semibold text-lg">{voucher.customer.name}</p>
-                <p className="text-muted-foreground">{voucher.customer.email}</p>
-                {voucher.customer.phone && <p className="text-muted-foreground">{voucher.customer.phone}</p>}
-                {voucher.customer.address && <p className="text-muted-foreground">{voucher.customer.address}</p>}
+            {voucher.customer && (
+              <div>
+                <h3 className="font-semibold text-primary mb-3">Paid To:</h3>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-semibold text-lg">{voucher.customer.name}</p>
+                  <p className="text-muted-foreground">{voucher.customer.email}</p>
+                  {voucher.customer.phone && <p className="text-muted-foreground">{voucher.customer.phone}</p>}
+                  {voucher.customer.address && <p className="text-muted-foreground">{voucher.customer.address}</p>}
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Date:</span>
