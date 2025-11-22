@@ -8,3 +8,4 @@ ALTER TABLE payment_vouchers
 ALTER COLUMN currency SET DEFAULT 'IQD';
 
 
+

@@ -146,12 +146,32 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
             </div>
           </div>
 
-          {/* Description */}
-          {voucher.description && (
+          {/* Descriptions */}
+          {((voucher.descriptions && voucher.descriptions.length > 0) || voucher.description) && (
             <div className="border-t pt-6">
-              <h3 className="font-semibold text-primary mb-3">Description:</h3>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-muted-foreground">{voucher.description}</p>
+              <h3 className="font-semibold text-primary mb-3">Descriptions:</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-primary text-primary-foreground">
+                    <tr>
+                      <th className="text-left p-4 font-medium w-16">#</th>
+                      <th className="text-left p-4 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(voucher.descriptions && voucher.descriptions.length > 0
+                      ? voucher.descriptions
+                      : voucher.description
+                        ? [voucher.description]
+                        : []
+                    ).map((desc: string, index: number) => (
+                      <tr key={index} className={index % 2 === 0 ? "bg-muted/25" : "bg-background"}>
+                        <td className="p-4">{index + 1}</td>
+                        <td className="p-4">{desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

@@ -41,6 +41,11 @@ export interface CompanyInfo {
   primaryColor?: string
 }
 
+export interface DescriptionItem {
+  description: string
+  amount: number
+}
+
 export interface PaymentVoucher {
   id: string
   voucherNumber: string
@@ -52,7 +57,7 @@ export interface PaymentVoucher {
   paymentMethod?: string
   referenceNumber?: string
   description?: string
-  descriptions?: string[]
+  descriptions?: string[] | DescriptionItem[]
   status: "draft" | "completed" | "cancelled"
   notes?: string
   name?: string
@@ -71,6 +76,7 @@ export interface ReceiptVoucher {
   paymentMethod?: string
   referenceNumber?: string
   description?: string
+  descriptions?: string[] | DescriptionItem[]
   status: "draft" | "completed" | "cancelled"
   notes?: string
   deliveredBy?: string

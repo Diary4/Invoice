@@ -25,9 +25,18 @@ function formatCurrency(amount: number, currency: "USD" | "IQD") {
 
 export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFormProps) {
   const [customerId, setCustomerId] = useState(invoice?.customerId || "__none__")
+  const [useManualCustomer, setUseManualCustomer] = useState(
+    invoice?.customer?.name && !invoice?.customerId ? true : false
+  )
+  const [manualCustomerName, setManualCustomerName] = useState(
+    invoice?.customer?.name && !invoice?.customerId ? invoice.customer.name : ""
+  )
   
   const handleCustomerChange = (value: string) => {
     setCustomerId(value)
+    if (value !== "__manual__") {
+      setUseManualCustomer(false)
+    }
   }
   const [items, setItems] = useState<Omit<InvoiceItem, "id">[]>(
     invoice?.items.map((item) => ({
@@ -75,10 +84,23 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedCustomer = customerId && customerId !== "__none__" ? customers.find((c) => c.id === customerId) : null
+    let selectedCustomer = null
+    if (useManualCustomer && manualCustomerName.trim()) {
+      // Create a temporary customer object for manual entry
+      selectedCustomer = {
+        id: "__manual__",
+        name: manualCustomerName.trim(),
+        email: "",
+        phone: "",
+        address: "",
+        createdAt: new Date(),
+      }
+    } else if (customerId && customerId !== "__none__" && customerId !== "__manual__") {
+      selectedCustomer = customers.find((c) => c.id === customerId) || null
+    }
 
     const invoiceData = {
-      customerId: customerId && customerId !== "__none__" ? customerId : null,
+      customerId: useManualCustomer ? null : (customerId && customerId !== "__none__" && customerId !== "__manual__" ? customerId : null),
       customer: selectedCustomer || undefined,
       items: items.map((item, index) => ({
         ...item,
@@ -104,14 +126,26 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="customer">Customer</Label>
-              <Select value={customerId} onValueChange={handleCustomerChange}>
+              <Select 
+                value={useManualCustomer ? "__manual__" : customerId} 
+                onValueChange={(value) => {
+                  if (value === "__manual__") {
+                    setUseManualCustomer(true)
+                    setCustomerId("__none__")
+                  } else {
+                    setUseManualCustomer(false)
+                    handleCustomerChange(value)
+                  }
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
+                  <SelectItem value="__manual__">Enter Manually</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
@@ -119,6 +153,13 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
                   ))}
                 </SelectContent>
               </Select>
+              {useManualCustomer && (
+                <Input
+                  placeholder="Enter customer name"
+                  value={manualCustomerName}
+                  onChange={(e) => setManualCustomerName(e.target.value)}
+                />
+              )}
             </div>
             <div>
               <Label htmlFor="status">Status</Label>

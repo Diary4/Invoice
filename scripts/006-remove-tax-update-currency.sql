@@ -6,3 +6,4 @@ ALTER COLUMN currency SET DEFAULT 'IQD';
 -- but will always be set to 0 in new invoices
 
 
+

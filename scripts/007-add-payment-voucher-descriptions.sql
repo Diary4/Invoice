@@ -2,3 +2,4 @@
 ALTER TABLE payment_vouchers 
 ADD COLUMN IF NOT EXISTS descriptions JSONB;
 
+

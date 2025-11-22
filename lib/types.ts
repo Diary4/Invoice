@@ -33,6 +33,11 @@ export interface Invoice {
   updated_at?: string
 }
 
+export interface DescriptionItem {
+  description: string
+  amount: number
+}
+
 export interface PaymentVoucher {
   id?: number
   voucher_number: string
@@ -44,7 +49,7 @@ export interface PaymentVoucher {
   payment_method?: string
   reference_number?: string
   description?: string
-  descriptions?: string[]
+  descriptions?: string[] | DescriptionItem[]
   status: "draft" | "completed" | "cancelled"
   notes?: string
   name?: string
@@ -64,6 +69,7 @@ export interface ReceiptVoucher {
   payment_method?: string
   reference_number?: string
   description?: string
+  descriptions?: string[] | DescriptionItem[]
   status: "draft" | "completed" | "cancelled"
   notes?: string
   delivered_by?: string

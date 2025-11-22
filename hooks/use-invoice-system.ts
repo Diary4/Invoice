@@ -370,25 +370,32 @@ export function useInvoiceSystem() {
         detailsY += 10
       }
 
-      // Amount section
-      const amountY = detailsY + 20
-      doc.setFont("helvetica", "bold")
-      doc.text("Amount Paid:", 130, amountY)
-      doc.setFontSize(16)
-      doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), 130, amountY + 15)
-
-      // Descriptions table
-      let descriptionsY = amountY + 30
-      let descriptionsList: string[] = []
+      // Descriptions table (before amount)
+      let descriptionsY = detailsY + 20
+      let descriptionsList: Array<{ description: string; amount: number | string }> = []
       
       // Handle descriptions from database (could be JSON string or array)
       if (voucher.descriptions) {
         if (Array.isArray(voucher.descriptions)) {
-          descriptionsList = voucher.descriptions
+          // Check if it's DescriptionItem[] or string[]
+          if (voucher.descriptions.length > 0) {
+            if (typeof voucher.descriptions[0] === 'object' && 'description' in voucher.descriptions[0]) {
+              descriptionsList = voucher.descriptions as Array<{ description: string; amount: number | string }>
+            } else {
+              // Convert string[] to DescriptionItem[]
+              descriptionsList = (voucher.descriptions as string[]).map(desc => ({ description: desc, amount: 0 }))
+            }
+          }
         } else if (typeof voucher.descriptions === 'string') {
           try {
             const parsed = JSON.parse(voucher.descriptions)
-            descriptionsList = Array.isArray(parsed) ? parsed : []
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              if (typeof parsed[0] === 'object' && 'description' in parsed[0]) {
+                descriptionsList = parsed as Array<{ description: string; amount: number | string }>
+              } else {
+                descriptionsList = (parsed as string[]).map(desc => ({ description: desc, amount: 0 }))
+              }
+            }
           } catch {
             descriptionsList = []
           }
@@ -397,7 +404,7 @@ export function useInvoiceSystem() {
       
       // Fallback to single description if no descriptions array
       if (descriptionsList.length === 0 && voucher.description) {
-        descriptionsList = [voucher.description]
+        descriptionsList = [{ description: voucher.description, amount: 0 }]
       }
       
       if (descriptionsList.length > 0) {
@@ -412,24 +419,34 @@ export function useInvoiceSystem() {
         doc.line(20, descriptionsY, 190, descriptionsY) // Top border
         doc.text("#", 25, descriptionsY + 7)
         doc.text("Description", 40, descriptionsY + 7)
+        doc.text("Amount", 150, descriptionsY + 7)
         doc.line(20, descriptionsY + 10, 190, descriptionsY + 10) // Header bottom border
         
         // Table rows
         descriptionsY += 10
         doc.setFont("helvetica", "normal")
-        descriptionsList.forEach((desc: string, index: number) => {
+        descriptionsList.forEach((item: { description: string; amount: number | string }, index: number) => {
           if (descriptionsY > 250) {
             doc.addPage()
             descriptionsY = 20
           }
           doc.text((index + 1).toString(), 25, descriptionsY + 5)
-          const splitDesc = doc.splitTextToSize(desc, 140)
+          const splitDesc = doc.splitTextToSize(item.description, 100)
           doc.text(splitDesc, 40, descriptionsY + 5)
+          const itemAmount = typeof item.amount === 'number' ? item.amount : (item.amount === '' || item.amount === null || item.amount === undefined ? 0 : Number.parseFloat(String(item.amount)) || 0)
+          doc.text(formatCurrencyForPDF(itemAmount, voucher.currency as "USD" | "IQD"), 150, descriptionsY + 5)
           descriptionsY += Math.max(10, splitDesc.length * 5)
           doc.line(20, descriptionsY, 190, descriptionsY) // Row border
         })
         descriptionsY += 5
       }
+
+      // Amount section (after descriptions)
+      const amountY = descriptionsY + 10
+      doc.setFont("helvetica", "bold")
+      doc.text("Amount Paid:", 130, amountY)
+      doc.setFontSize(16)
+      doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), 130, amountY + 15)
 
       // Notes
       let signatureY = descriptionsY
@@ -602,30 +619,71 @@ export function useInvoiceSystem() {
         detailsY += 10
       }
 
-      // Amount section
-      const amountY = detailsY + 20
+      // Descriptions table (before amount)
+      let descriptionsY = detailsY + 20
+      let descriptionsList: string[] = []
+      
+      // Handle descriptions from database (could be JSON string or array)
+      if (voucher.descriptions) {
+        if (Array.isArray(voucher.descriptions)) {
+          descriptionsList = voucher.descriptions
+        } else if (typeof voucher.descriptions === 'string') {
+          try {
+            const parsed = JSON.parse(voucher.descriptions)
+            descriptionsList = Array.isArray(parsed) ? parsed : []
+          } catch {
+            descriptionsList = []
+          }
+        }
+      }
+      
+      // Fallback to single description if no descriptions array
+      if (descriptionsList.length === 0 && voucher.description) {
+        descriptionsList = [voucher.description]
+      }
+      
+      if (descriptionsList.length > 0) {
+        doc.setFontSize(12)
+        doc.setFont("helvetica", "bold")
+        doc.text("Descriptions:", 20, descriptionsY)
+        
+        // Table header
+        descriptionsY += 10
+        doc.setFontSize(10)
+        doc.setFont("helvetica", "bold")
+        doc.line(20, descriptionsY, 190, descriptionsY) // Top border
+        doc.text("#", 25, descriptionsY + 7)
+        doc.text("Description", 40, descriptionsY + 7)
+        doc.line(20, descriptionsY + 10, 190, descriptionsY + 10) // Header bottom border
+        
+        // Table rows
+        descriptionsY += 10
+        doc.setFont("helvetica", "normal")
+        descriptionsList.forEach((desc: string, index: number) => {
+          if (descriptionsY > 250) {
+            doc.addPage()
+            descriptionsY = 20
+          }
+          doc.text((index + 1).toString(), 25, descriptionsY + 5)
+          const splitDesc = doc.splitTextToSize(desc, 140)
+          doc.text(splitDesc, 40, descriptionsY + 5)
+          descriptionsY += Math.max(10, splitDesc.length * 5)
+          doc.line(20, descriptionsY, 190, descriptionsY) // Row border
+        })
+        descriptionsY += 5
+      }
+
+      // Amount section (after descriptions)
+      const amountY = descriptionsY + 10
       doc.setFont("helvetica", "bold")
       doc.text("Amount Received:", 130, amountY)
       doc.setFontSize(16)
       doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), 130, amountY + 15)
 
-      // Description
-      if (voucher.description) {
-        doc.setFontSize(12)
-        doc.setFont("helvetica", "bold")
-        doc.text("Description:", 20, amountY + 30)
-        doc.setFont("helvetica", "normal")
-        const splitDesc = doc.splitTextToSize(voucher.description, 170)
-        doc.text(splitDesc, 20, amountY + 40)
-      }
-
       // Notes
       let signatureY = amountY + 30
-      if (voucher.description) {
-        signatureY += 30
-      }
       if (voucher.notes) {
-        const notesY = amountY + (voucher.description ? 60 : 40)
+        const notesY = signatureY + 10
         doc.setFont("helvetica", "bold")
         doc.text("Notes:", 20, notesY)
         doc.setFont("helvetica", "normal")
@@ -670,8 +728,42 @@ export function useInvoiceSystem() {
       doc.setFont("helvetica", "italic")
       doc.text(`Thank you for your payment! For questions, contact us at ${companyInfo.email}`, 20, footerY)
 
-      // Save the PDF
-      doc.save(`${voucher.voucherNumber}.pdf`)
+      // Generate PDF blob and trigger print
+      try {
+        const pdfBlob = doc.output("blob")
+        const pdfUrl = URL.createObjectURL(pdfBlob)
+        
+        // Create iframe for printing
+        const iframe = document.createElement("iframe")
+        iframe.style.position = "fixed"
+        iframe.style.right = "0"
+        iframe.style.bottom = "0"
+        iframe.style.width = "0"
+        iframe.style.height = "0"
+        iframe.style.border = "0"
+        iframe.src = pdfUrl
+        document.body.appendChild(iframe)
+        
+        iframe.onload = () => {
+          setTimeout(() => {
+            try {
+              iframe.contentWindow?.print()
+            } catch (error) {
+              console.error("Print failed, downloading instead:", error)
+              doc.save(`${voucher.voucherNumber}.pdf`)
+            }
+            // Clean up after a delay
+            setTimeout(() => {
+              document.body.removeChild(iframe)
+              URL.revokeObjectURL(pdfUrl)
+            }, 1000)
+          }, 500)
+        }
+      } catch (error) {
+        console.error("Auto-print failed, downloading instead:", error)
+        // Fallback: download if auto-print fails
+        doc.save(`${voucher.voucherNumber}.pdf`)
+      }
     },
     [companyInfo],
   )
