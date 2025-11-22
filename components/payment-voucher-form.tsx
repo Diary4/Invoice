@@ -39,10 +39,6 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
   )
   const [currency, setCurrency] = useState<"USD" | "IQD">(voucher?.currency || "IQD")
   const [paymentMethod, setPaymentMethod] = useState(voucher?.paymentMethod || "")
-  // Auto-generate reference number based on voucher number or timestamp
-  const referenceNumber = voucher?.voucherNumber 
-    ? `REF-${voucher.voucherNumber}` 
-    : `REF-${Date.now()}`
   const [descriptions, setDescriptions] = useState<DescriptionItem[]>(() => {
     // Handle descriptions from database (could be JSON string or array)
     if (voucher?.descriptions) {
@@ -103,6 +99,11 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       selectedCustomer = customers.find((c) => c.id === customerId) || null
     }
 
+    // Auto-generate reference number
+    const referenceNumber = voucher?.voucherNumber 
+      ? `REF-${voucher.voucherNumber}` 
+      : `REF-${Date.now()}`
+
     const voucherData = {
       customerId: useManualCustomer ? null : (customerId && customerId !== "__none__" && customerId !== "__manual__" ? customerId : null),
       customer: selectedCustomer || undefined,
@@ -110,7 +111,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       currency,
       amount: totalAmount,
       paymentMethod: paymentMethod || undefined,
-      referenceNumber: referenceNumber || undefined,
+      referenceNumber: referenceNumber,
       descriptions: descriptions.filter((item) => item.description.trim() !== ""),
       status,
       notes: notes || undefined,

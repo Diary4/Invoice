@@ -147,34 +147,48 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
           </div>
 
           {/* Descriptions */}
-          {((voucher.descriptions && voucher.descriptions.length > 0) || voucher.description) && (
-            <div className="border-t pt-6">
-              <h3 className="font-semibold text-primary mb-3">Descriptions:</h3>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-primary text-primary-foreground">
-                    <tr>
-                      <th className="text-left p-4 font-medium w-16">#</th>
-                      <th className="text-left p-4 font-medium">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(voucher.descriptions && voucher.descriptions.length > 0
-                      ? voucher.descriptions
-                      : voucher.description
-                        ? [voucher.description]
-                        : []
-                    ).map((desc: string, index: number) => (
-                      <tr key={index} className={index % 2 === 0 ? "bg-muted/25" : "bg-background"}>
-                        <td className="p-4">{index + 1}</td>
-                        <td className="p-4">{desc}</td>
+          {((voucher.descriptions && voucher.descriptions.length > 0) || voucher.description) && (() => {
+            // Normalize descriptions to DescriptionItem format
+            let descriptionsList: Array<{ description: string; amount: number | string }> = []
+            if (voucher.descriptions && voucher.descriptions.length > 0) {
+              if (typeof voucher.descriptions[0] === 'object' && 'description' in voucher.descriptions[0]) {
+                descriptionsList = voucher.descriptions as Array<{ description: string; amount: number | string }>
+              } else {
+                descriptionsList = (voucher.descriptions as string[]).map(desc => ({ description: desc, amount: 0 }))
+              }
+            } else if (voucher.description) {
+              descriptionsList = [{ description: voucher.description, amount: 0 }]
+            }
+            
+            return descriptionsList.length > 0 ? (
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-primary mb-3">Descriptions:</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-primary text-primary-foreground">
+                      <tr>
+                        <th className="text-left p-4 font-medium w-16">#</th>
+                        <th className="text-left p-4 font-medium">Description</th>
+                        <th className="text-right p-4 font-medium">Amount</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {descriptionsList.map((item: { description: string; amount: number | string }, index: number) => {
+                        const itemAmount = typeof item.amount === 'number' ? item.amount : (item.amount === '' || item.amount === null || item.amount === undefined ? 0 : Number.parseFloat(String(item.amount)) || 0)
+                        return (
+                          <tr key={index} className={index % 2 === 0 ? "bg-muted/25" : "bg-background"}>
+                            <td className="p-4">{index + 1}</td>
+                            <td className="p-4">{item.description}</td>
+                            <td className="p-4 text-right">{formatCurrency(itemAmount, voucher.currency)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            ) : null
+          })()}
 
           {/* Notes */}
           {voucher.notes && (
