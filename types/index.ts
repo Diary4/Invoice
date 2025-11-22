@@ -56,6 +56,8 @@ export interface PaymentVoucher {
   description?: string
   status: "draft" | "completed" | "cancelled"
   notes?: string
+  name?: string
+  accountantName?: string
   createdAt: Date
 }
 

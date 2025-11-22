@@ -48,6 +48,8 @@ export interface PaymentVoucher {
   description?: string
   status: "draft" | "completed" | "cancelled"
   notes?: string
+  name?: string
+  accountant_name?: string
   created_at?: string
   updated_at?: string
 }

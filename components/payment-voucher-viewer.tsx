@@ -166,6 +166,36 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
             </div>
           )}
 
+          {/* Signature Section */}
+          {(voucher.name || voucher.accountantName) && (
+            <div className="border-t pt-6">
+              <div className="grid grid-cols-2 gap-8 mt-6">
+                {voucher.name && (
+                  <div>
+                    <p className="font-semibold mb-2">{voucher.name}</p>
+                    <div className="border-t border-b border-gray-300 py-8 mb-2">
+                      <p className="text-xs text-muted-foreground mb-4">Signature</p>
+                    </div>
+                    <div className="border-t border-b border-gray-300 py-2">
+                      <p className="text-xs text-muted-foreground">Date</p>
+                    </div>
+                  </div>
+                )}
+                {voucher.accountantName && (
+                  <div>
+                    <p className="font-semibold mb-2">{voucher.accountantName}</p>
+                    <div className="border-t border-b border-gray-300 py-8 mb-2">
+                      <p className="text-xs text-muted-foreground mb-4">Signature</p>
+                    </div>
+                    <div className="border-t border-b border-gray-300 py-2">
+                      <p className="text-xs text-muted-foreground">Date</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Footer */}
           <div className="border-t pt-6 text-center text-sm text-muted-foreground">
             <p className="mb-2">Thank you for your payment!</p>

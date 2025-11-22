@@ -39,6 +39,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       description,
       status,
       notes,
+      name,
+      accountant_name,
     } = voucherData
 
     const [voucher] = await sql`
@@ -53,6 +55,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         description = ${description},
         status = ${status},
         notes = ${notes},
+        name = ${name || null},
+        accountant_name = ${accountant_name || null},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${params.id}
       RETURNING *

@@ -27,13 +27,15 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
   const [paymentDate, setPaymentDate] = useState(
     voucher?.paymentDate ? new Date(voucher.paymentDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   )
-  const [currency, setCurrency] = useState<"USD" | "IQD">(voucher?.currency || "USD")
+  const [currency, setCurrency] = useState<"USD" | "IQD">(voucher?.currency || "IQD")
   const [amount, setAmount] = useState(voucher?.amount || 0)
   const [paymentMethod, setPaymentMethod] = useState(voucher?.paymentMethod || "")
   const [referenceNumber, setReferenceNumber] = useState(voucher?.referenceNumber || "")
   const [description, setDescription] = useState(voucher?.description || "")
   const [status, setStatus] = useState<PaymentVoucher["status"]>(voucher?.status || "draft")
   const [notes, setNotes] = useState(voucher?.notes || "")
+  const [name, setName] = useState(voucher?.name || voucher?.name || "")
+  const [accountantName, setAccountantName] = useState(voucher?.accountantName || voucher?.accountant_name || "")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +53,8 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       description: description || undefined,
       status,
       notes: notes || undefined,
+      name: name || undefined,
+      accountantName: accountantName || undefined,
     }
 
     onSave(voucherData)
@@ -171,6 +175,27 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional notes..."
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="accountantName">Accountant Name</Label>
+              <Input
+                id="accountantName"
+                value={accountantName}
+                onChange={(e) => setAccountantName(e.target.value)}
+                placeholder="Accountant name"
+              />
+            </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">
