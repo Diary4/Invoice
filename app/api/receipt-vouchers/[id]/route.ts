@@ -44,7 +44,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const [voucher] = await sql`
       UPDATE receipt_vouchers
       SET 
-        customer_id = ${customer_id},
+        customer_id = ${customer_id || null},
         receipt_date = ${receipt_date},
         currency = ${currency},
         amount = ${amount},

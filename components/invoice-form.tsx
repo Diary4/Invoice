@@ -25,6 +25,10 @@ function formatCurrency(amount: number, currency: "USD" | "IQD") {
 
 export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFormProps) {
   const [customerId, setCustomerId] = useState(invoice?.customerId || "")
+  
+  const handleCustomerChange = (value: string) => {
+    setCustomerId(value === "" ? "" : value)
+  }
   const [items, setItems] = useState<Omit<InvoiceItem, "id">[]>(
     invoice?.items.map((item) => ({
       description: item.description,
@@ -106,7 +110,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="customer">Customer</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
+              <Select value={customerId} onValueChange={handleCustomerChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>

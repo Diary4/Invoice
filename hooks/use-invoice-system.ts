@@ -465,16 +465,18 @@ export function useInvoiceSystem() {
       doc.text(`Date: ${new Date(voucher.receiptDate).toLocaleDateString()}`, 20, 115)
 
       // Customer information
-      doc.setFont("helvetica", "bold")
-      doc.text("Received From:", 120, 105)
-      doc.setFont("helvetica", "normal")
-      doc.text(voucher.customer.name, 120, 115)
-      doc.text(voucher.customer.email, 120, 125)
-      if (voucher.customer.phone) {
-        doc.text(voucher.customer.phone, 120, 135)
-      }
-      if (voucher.customer.address) {
-        doc.text(voucher.customer.address, 120, 145)
+      if (voucher.customer) {
+        doc.setFont("helvetica", "bold")
+        doc.text("Received From:", 120, 105)
+        doc.setFont("helvetica", "normal")
+        doc.text(voucher.customer.name, 120, 115)
+        doc.text(voucher.customer.email, 120, 125)
+        if (voucher.customer.phone) {
+          doc.text(voucher.customer.phone, 120, 135)
+        }
+        if (voucher.customer.address) {
+          doc.text(voucher.customer.address, 120, 145)
+        }
       }
 
       // Payment details

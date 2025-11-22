@@ -20,6 +20,10 @@ interface PaymentVoucherFormProps {
 
 export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: PaymentVoucherFormProps) {
   const [customerId, setCustomerId] = useState(voucher?.customerId || "")
+  
+  const handleCustomerChange = (value: string) => {
+    setCustomerId(value === "" ? "" : value)
+  }
   const [paymentDate, setPaymentDate] = useState(
     voucher?.paymentDate ? new Date(voucher.paymentDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   )
@@ -62,7 +66,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="customer">Customer</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
+              <Select value={customerId} onValueChange={handleCustomerChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer (optional)" />
                 </SelectTrigger>
