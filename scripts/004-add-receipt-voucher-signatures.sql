@@ -3,3 +3,4 @@ ALTER TABLE receipt_vouchers
 ADD COLUMN IF NOT EXISTS delivered_by VARCHAR(255),
 ADD COLUMN IF NOT EXISTS received_by VARCHAR(255);
 
+

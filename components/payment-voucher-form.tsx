@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Trash2, Plus } from "lucide-react"
 import type { Customer, PaymentVoucher } from "../types"
 import { formatCurrency } from "@/lib/currency"
 
@@ -31,7 +32,23 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
   const [amount, setAmount] = useState(voucher?.amount || 0)
   const [paymentMethod, setPaymentMethod] = useState(voucher?.paymentMethod || "")
   const [referenceNumber, setReferenceNumber] = useState(voucher?.referenceNumber || "")
-  const [description, setDescription] = useState(voucher?.description || "")
+  const [descriptions, setDescriptions] = useState<string[]>(() => {
+    // Handle descriptions from database (could be JSON string or array)
+    if (voucher?.descriptions) {
+      if (Array.isArray(voucher.descriptions)) {
+        return voucher.descriptions.length > 0 ? voucher.descriptions : [""]
+      }
+      // If it's a string, try to parse it
+      try {
+        const parsed = typeof voucher.descriptions === 'string' ? JSON.parse(voucher.descriptions) : voucher.descriptions
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : [""]
+      } catch {
+        return [""]
+      }
+    }
+    // Fallback to single description
+    return voucher?.description ? [voucher.description] : [""]
+  })
   const [status, setStatus] = useState<PaymentVoucher["status"]>(voucher?.status || "draft")
   const [notes, setNotes] = useState(voucher?.notes || "")
   const [name, setName] = useState(voucher?.name || voucher?.name || "")
@@ -50,7 +67,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       amount,
       paymentMethod: paymentMethod || undefined,
       referenceNumber: referenceNumber || undefined,
-      description: description || undefined,
+      descriptions: descriptions.filter((desc) => desc.trim() !== ""),
       status,
       notes: notes || undefined,
       name: name || undefined,
@@ -158,13 +175,42 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
           </div>
 
           <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Payment description..."
-            />
+            <div className="flex justify-between items-center mb-4">
+              <Label>Descriptions</Label>
+              <Button type="button" onClick={() => setDescriptions([...descriptions, ""])} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Description
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {descriptions.map((desc, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <Input
+                    value={desc}
+                    onChange={(e) => {
+                      const newDescriptions = [...descriptions]
+                      newDescriptions[index] = e.target.value
+                      setDescriptions(newDescriptions)
+                    }}
+                    placeholder={`Description ${index + 1}...`}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (descriptions.length > 1) {
+                        setDescriptions(descriptions.filter((_, i) => i !== index))
+                      }
+                    }}
+                    disabled={descriptions.length === 1}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>

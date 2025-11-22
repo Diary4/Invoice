@@ -37,11 +37,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       payment_method,
       reference_number,
       description,
+      descriptions,
       status,
       notes,
       name,
       accountant_name,
     } = voucherData
+
+    // Use descriptions array if provided, otherwise fall back to description string
+    const descriptionsArray = descriptions && descriptions.length > 0 
+      ? descriptions 
+      : description 
+        ? [description] 
+        : null
 
     const [voucher] = await sql`
       UPDATE payment_vouchers
@@ -53,6 +61,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         payment_method = ${payment_method},
         reference_number = ${reference_number},
         description = ${description},
+        descriptions = ${descriptionsArray ? JSON.stringify(descriptionsArray) : null}::jsonb,
         status = ${status},
         notes = ${notes},
         name = ${name || null},

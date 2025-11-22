@@ -52,6 +52,7 @@ export interface PaymentVoucher {
   paymentMethod?: string
   referenceNumber?: string
   description?: string
+  descriptions?: string[]
   status: "draft" | "completed" | "cancelled"
   notes?: string
   name?: string

@@ -7,3 +7,4 @@ ADD COLUMN IF NOT EXISTS accountant_name VARCHAR(255);
 ALTER TABLE payment_vouchers 
 ALTER COLUMN currency SET DEFAULT 'IQD';
 
+
