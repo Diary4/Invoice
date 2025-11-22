@@ -621,16 +621,30 @@ export function useInvoiceSystem() {
 
       // Descriptions table (before amount)
       let descriptionsY = detailsY + 20
-      let descriptionsList: string[] = []
+      let descriptionsList: Array<{ description: string; amount: number | string }> = []
       
       // Handle descriptions from database (could be JSON string or array)
       if (voucher.descriptions) {
         if (Array.isArray(voucher.descriptions)) {
-          descriptionsList = voucher.descriptions
+          // Check if it's DescriptionItem[] or string[]
+          if (voucher.descriptions.length > 0) {
+            if (typeof voucher.descriptions[0] === 'object' && 'description' in voucher.descriptions[0]) {
+              descriptionsList = voucher.descriptions as Array<{ description: string; amount: number | string }>
+            } else {
+              // Convert string[] to DescriptionItem[]
+              descriptionsList = (voucher.descriptions as string[]).map(desc => ({ description: desc, amount: 0 }))
+            }
+          }
         } else if (typeof voucher.descriptions === 'string') {
           try {
             const parsed = JSON.parse(voucher.descriptions)
-            descriptionsList = Array.isArray(parsed) ? parsed : []
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              if (typeof parsed[0] === 'object' && 'description' in parsed[0]) {
+                descriptionsList = parsed as Array<{ description: string; amount: number | string }>
+              } else {
+                descriptionsList = (parsed as string[]).map(desc => ({ description: desc, amount: 0 }))
+              }
+            }
           } catch {
             descriptionsList = []
           }
@@ -639,7 +653,7 @@ export function useInvoiceSystem() {
       
       // Fallback to single description if no descriptions array
       if (descriptionsList.length === 0 && voucher.description) {
-        descriptionsList = [voucher.description]
+        descriptionsList = [{ description: voucher.description, amount: 0 }]
       }
       
       if (descriptionsList.length > 0) {
@@ -654,19 +668,22 @@ export function useInvoiceSystem() {
         doc.line(20, descriptionsY, 190, descriptionsY) // Top border
         doc.text("#", 25, descriptionsY + 7)
         doc.text("Description", 40, descriptionsY + 7)
+        doc.text("Amount", 150, descriptionsY + 7)
         doc.line(20, descriptionsY + 10, 190, descriptionsY + 10) // Header bottom border
         
         // Table rows
         descriptionsY += 10
         doc.setFont("helvetica", "normal")
-        descriptionsList.forEach((desc: string, index: number) => {
+        descriptionsList.forEach((item: { description: string; amount: number | string }, index: number) => {
           if (descriptionsY > 250) {
             doc.addPage()
             descriptionsY = 20
           }
           doc.text((index + 1).toString(), 25, descriptionsY + 5)
-          const splitDesc = doc.splitTextToSize(desc, 140)
+          const splitDesc = doc.splitTextToSize(item.description, 100)
           doc.text(splitDesc, 40, descriptionsY + 5)
+          const itemAmount = typeof item.amount === 'number' ? item.amount : (item.amount === '' || item.amount === null || item.amount === undefined ? 0 : Number.parseFloat(String(item.amount)) || 0)
+          doc.text(formatCurrencyForPDF(itemAmount, voucher.currency as "USD" | "IQD"), 150, descriptionsY + 5)
           descriptionsY += Math.max(10, splitDesc.length * 5)
           doc.line(20, descriptionsY, 190, descriptionsY) // Row border
         })
