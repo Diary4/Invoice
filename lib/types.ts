@@ -25,8 +25,6 @@ export interface Invoice {
   due_date: string
   currency: "USD" | "IQD"
   subtotal: number
-  tax_rate: number
-  tax_amount: number
   total: number
   status: "draft" | "sent" | "paid" | "overdue"
   notes?: string

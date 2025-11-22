@@ -22,8 +22,6 @@ export interface Invoice {
   customer?: Customer
   items: InvoiceItem[]
   subtotal: number
-  taxRate: number
-  taxAmount: number
   total: number
   currency: "USD" | "IQD"
   status: "draft" | "sent" | "paid" | "overdue"

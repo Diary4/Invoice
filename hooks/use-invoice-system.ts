@@ -31,8 +31,6 @@ export interface Invoice {
   dueDate: Date
   items: InvoiceItem[]
   subtotal: number
-  taxRate: number
-  taxAmount: number
   total: number
   currency: "USD" | "IQD"
   status: "draft" | "sent" | "paid" | "overdue"
@@ -265,12 +263,9 @@ export function useInvoiceSystem() {
       doc.text("Subtotal:", 130, totalsY)
       doc.text(formatCurrencyForPDF(invoice.subtotal, invoice.currency as "USD" | "IQD"), 170, totalsY)
 
-      doc.text(`Tax (${invoice.taxRate}%):`, 130, totalsY + 10)
-      doc.text(formatCurrencyForPDF(invoice.taxAmount, invoice.currency as "USD" | "IQD"), 170, totalsY + 10)
-
       doc.setFont("helvetica", "bold")
-      doc.text("Total:", 130, totalsY + 20)
-      doc.text(formatCurrencyForPDF(invoice.total, invoice.currency as "USD" | "IQD"), 170, totalsY + 20)
+      doc.text("Total:", 130, totalsY + 10)
+      doc.text(formatCurrencyForPDF(invoice.total, invoice.currency as "USD" | "IQD"), 170, totalsY + 10)
 
       // Notes section
       if (invoice.notes) {

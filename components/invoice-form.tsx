@@ -37,7 +37,6 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       total: item.total,
     })) || [{ description: "", quantity: 1, price: 0, total: 0 }],
   )
-  const [taxRate, setTaxRate] = useState(invoice?.taxRate || 10)
   const [status, setStatus] = useState<Invoice["status"]>(invoice?.status || "draft")
   const [issueDate, setIssueDate] = useState(
     invoice?.issueDate.toISOString().split("T")[0] || new Date().toISOString().split("T")[0],
@@ -47,7 +46,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   )
   const [notes, setNotes] = useState(invoice?.notes || "")
-  const [currency, setCurrency] = useState<"USD" | "IQD">(invoice?.currency || "USD")
+  const [currency, setCurrency] = useState<"USD" | "IQD">(invoice?.currency || "IQD")
 
   const updateItem = (index: number, field: keyof Omit<InvoiceItem, "id">, value: string | number) => {
     const newItems = [...items]
@@ -71,8 +70,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const taxAmount = subtotal * (taxRate / 100)
-  const total = subtotal + taxAmount
+  const total = subtotal
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,8 +85,6 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
         id: `item-${index}`,
       })),
       subtotal,
-      taxRate,
-      taxAmount,
       total,
       status,
       issueDate: new Date(issueDate),
@@ -231,29 +227,13 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="taxRate">Tax Rate (%)</Label>
-              <Input
-                id="taxRate"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number.parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
+          <div className="flex justify-end">
+            <div className="w-80 space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span>{formatCurrency(subtotal, currency)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Tax ({taxRate}%):</span>
-                <span>{formatCurrency(taxAmount, currency)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg">
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total:</span>
                 <span>{formatCurrency(total, currency)}</span>
               </div>

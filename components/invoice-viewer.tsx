@@ -161,10 +161,6 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                   <span>Subtotal:</span>
                   <span>{formatCurrency(invoice.subtotal, invoice.currency)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax ({invoice.taxRate}%):</span>
-                  <span>{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
-                </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between font-bold text-xl">
                     <span>Total:</span>

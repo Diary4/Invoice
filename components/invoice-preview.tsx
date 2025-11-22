@@ -147,12 +147,6 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               <span>Subtotal:</span>
               <span>{formatCurrency(invoice.subtotal, invoice.currency)}</span>
             </div>
-            {invoice.tax_rate > 0 && (
-              <div className="flex justify-between">
-                <span>Tax ({invoice.tax_rate}%):</span>
-                <span>{formatCurrency(invoice.tax_amount, invoice.currency)}</span>
-              </div>
-            )}
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Total:</span>
