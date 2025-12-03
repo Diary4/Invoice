@@ -42,6 +42,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       notes,
       name,
       accountant_name,
+      amount_language,
     } = voucherData
 
     // Use descriptions array if provided, otherwise fall back to description string
@@ -66,6 +67,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         notes = ${notes},
         name = ${name || null},
         accountant_name = ${accountant_name || null},
+        amount_language = ${amount_language || 'english'},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${params.id}
       RETURNING *

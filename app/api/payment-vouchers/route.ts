@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       notes,
       name,
       accountant_name,
+      amount_language,
     } = voucherData
 
     // Use descriptions array if provided, otherwise fall back to description string
@@ -49,11 +50,11 @@ export async function POST(request: Request) {
     const [voucher] = await sql`
       INSERT INTO payment_vouchers (
         voucher_number, customer_id, payment_date, currency,
-        amount, payment_method, reference_number, description, descriptions, status, notes, name, accountant_name
+        amount, payment_method, reference_number, description, descriptions, status, notes, name, accountant_name, amount_language
       )
       VALUES (
         ${voucher_number}, ${customer_id || null}, ${payment_date}, ${currency || 'IQD'},
-        ${amount}, ${payment_method}, ${reference_number}, ${description}, ${descriptionsArray ? JSON.stringify(descriptionsArray) : null}::jsonb, ${status}, ${notes}, ${name || null}, ${accountant_name || null}
+        ${amount}, ${payment_method}, ${reference_number}, ${description}, ${descriptionsArray ? JSON.stringify(descriptionsArray) : null}::jsonb, ${status}, ${notes}, ${name || null}, ${accountant_name || null}, ${amount_language || 'english'}
       )
       RETURNING *
     `

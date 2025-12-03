@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import jsPDF from "jspdf"
 import { formatCurrencyForPDF } from "../lib/currency"
+import { numberToWords } from "../lib/number-to-words"
 import type { PaymentVoucher, ReceiptVoucher, Customer } from "../types"
 
 export interface Customer {
@@ -447,6 +448,22 @@ export function useInvoiceSystem() {
       doc.text("Amount Paid:", 130, amountY)
       doc.setFontSize(16)
       doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), 130, amountY + 15)
+      
+      // Amount in words
+      const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language || "english"
+      if (amountLanguage) {
+        const amountInWords = numberToWords(
+          voucher.amount,
+          amountLanguage as "english" | "arabic" | "kurdish",
+          voucher.currency as "USD" | "IQD"
+        )
+        doc.setFontSize(10)
+        doc.setFont("helvetica", "normal")
+        doc.text("Amount in words:", 20, amountY + 25)
+        // Split text to fit page width (170mm width, starting at 20mm)
+        const splitWords = doc.splitTextToSize(amountInWords, 150)
+        doc.text(splitWords, 20, amountY + 35)
+      }
 
       // Notes
       let signatureY = descriptionsY

@@ -54,6 +54,7 @@ export interface PaymentVoucher {
   notes?: string
   name?: string
   accountant_name?: string
+  amount_language?: "english" | "arabic" | "kurdish"
   created_at?: string
   updated_at?: string
 }

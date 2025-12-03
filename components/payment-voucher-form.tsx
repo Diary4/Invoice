@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Trash2, Plus } from "lucide-react"
 import type { Customer, PaymentVoucher, DescriptionItem } from "../types"
 import { formatCurrency } from "@/lib/currency"
@@ -38,6 +39,9 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
     voucher?.paymentDate ? new Date(voucher.paymentDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   )
   const [currency, setCurrency] = useState<"USD" | "IQD">(voucher?.currency || "IQD")
+  const [amountLanguage, setAmountLanguage] = useState<"english" | "arabic" | "kurdish">(
+    voucher?.amountLanguage || "english"
+  )
   const [paymentMethod, setPaymentMethod] = useState(voucher?.paymentMethod || "")
   const [descriptions, setDescriptions] = useState<DescriptionItem[]>(() => {
     // Handle descriptions from database (could be JSON string or array)
@@ -117,6 +121,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       notes: notes || undefined,
       name: name || undefined,
       accountantName: accountantName || undefined,
+      amountLanguage: amountLanguage,
     }
 
     onSave(voucherData)
@@ -200,6 +205,31 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <Label>Amount in Words (Language)</Label>
+            <RadioGroup
+              value={amountLanguage}
+              onValueChange={(value: "english" | "arabic" | "kurdish") => setAmountLanguage(value)}
+              className="flex gap-6 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="english" id="english" />
+                <Label htmlFor="english" className="cursor-pointer">English</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="arabic" id="arabic" />
+                <Label htmlFor="arabic" className="cursor-pointer">Arabic</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kurdish" id="kurdish" />
+                <Label htmlFor="kurdish" className="cursor-pointer">Kurdish</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="paymentMethod">Payment Method</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
