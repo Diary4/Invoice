@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Download, Edit, Receipt } from "lucide-react"
 import { formatCurrency } from "../lib/currency"
+import { numberToWords } from "../lib/number-to-words"
 import type { ReceiptVoucher, CompanyInfo } from "../types"
 
 interface ReceiptVoucherViewerProps {
@@ -142,6 +143,17 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
                     <span className="text-primary">{formatCurrency(voucher.amount, voucher.currency)}</span>
                   </div>
                 </div>
+                {(() => {
+                  const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language
+                  return amountLanguage ? (
+                    <div className="pt-3">
+                      <p className="text-sm text-muted-foreground mb-1">Amount in words:</p>
+                      <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
+                        {numberToWords(voucher.amount, amountLanguage as "english" | "arabic" | "kurdish", voucher.currency)}
+                      </p>
+                    </div>
+                  ) : null
+                })()}
               </div>
             </div>
           </div>

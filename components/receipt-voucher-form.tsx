@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Trash2, Plus } from "lucide-react"
 import type { Customer, ReceiptVoucher, DescriptionItem } from "../types"
 import { formatCurrency } from "@/lib/currency"
@@ -38,6 +39,9 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
     voucher?.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   )
   const [currency, setCurrency] = useState<"USD" | "IQD">(voucher?.currency || "USD")
+  const [amountLanguage, setAmountLanguage] = useState<"english" | "arabic" | "kurdish">(
+    voucher?.amountLanguage || "english"
+  )
   const [paymentMethod, setPaymentMethod] = useState(voucher?.paymentMethod || "")
   const [descriptions, setDescriptions] = useState<DescriptionItem[]>(() => {
     // Handle descriptions from database (could be JSON string or array)
@@ -117,6 +121,7 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
       notes: notes || undefined,
       deliveredBy: deliveredBy || undefined,
       receivedBy: receivedBy || undefined,
+      amountLanguage: amountLanguage,
     }
 
     onSave(voucherData)
@@ -215,6 +220,28 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label>Amount in Words (Language)</Label>
+            <RadioGroup
+              value={amountLanguage}
+              onValueChange={(value: "english" | "arabic" | "kurdish") => setAmountLanguage(value)}
+              className="flex gap-6 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="english" id="receipt-english" />
+                <Label htmlFor="receipt-english" className="cursor-pointer">English</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="arabic" id="receipt-arabic" />
+                <Label htmlFor="receipt-arabic" className="cursor-pointer">Arabic</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kurdish" id="receipt-kurdish" />
+                <Label htmlFor="receipt-kurdish" className="cursor-pointer">Kurdish</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           <div>

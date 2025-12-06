@@ -75,6 +75,7 @@ export interface ReceiptVoucher {
   notes?: string
   delivered_by?: string
   received_by?: string
+  amount_language?: "english" | "arabic" | "kurdish"
   created_at?: string
   updated_at?: string
 }
