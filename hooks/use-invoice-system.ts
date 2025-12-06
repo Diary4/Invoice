@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import jsPDF from "jspdf"
 import { formatCurrencyForPDF } from "../lib/currency"
 import { numberToWords } from "../lib/number-to-words"
-import type { PaymentVoucher, ReceiptVoucher, Customer } from "../types"
+import type { PaymentVoucher, ReceiptVoucher } from "../types"
 
 export interface Customer {
   id: string
@@ -463,10 +463,18 @@ export function useInvoiceSystem() {
         // For Arabic and Kurdish, render using HTML canvas approach since jsPDF doesn't support Arabic fonts
         if (amountLanguage === "arabic" || amountLanguage === "kurdish") {
           try {
-            // Create a canvas element to render Arabic text with VERY LARGE font for readability
-            const canvas = document.createElement("canvas")
-            const ctx = canvas.getContext("2d")
-            if (ctx) {
+            // Check if we're in a browser environment
+            if (typeof document === "undefined" || typeof window === "undefined") {
+              // Fallback: render as text if not in browser
+              doc.setFontSize(12)
+              doc.setFont("helvetica", "normal")
+              const splitWords = doc.splitTextToSize(amountInWords, 100)
+              doc.text(splitWords, 20, numericAmountY)
+            } else {
+              // Create a canvas element to render Arabic text with VERY LARGE font for readability
+              const canvas = document.createElement("canvas")
+              const ctx = canvas.getContext("2d")
+              if (ctx) {
               // Use very high resolution for crisp text
               const scale = 4
               // Make font size MUCH larger - similar to the numeric amount (16pt ≈ 22px)
@@ -532,12 +540,13 @@ export function useInvoiceSystem() {
               const imageY = numericAmountY - (imgHeight / 2)
               // Position at x=20, but ensure width doesn't exceed maxArabicWidth
               doc.addImage(imgData, "PNG", 20, imageY, imgWidth, imgHeight)
-            } else {
-              // Fallback: render as text
-              doc.setFontSize(12)
-              doc.setFont("helvetica", "normal")
-              const splitWords = doc.splitTextToSize(amountInWords, 100)
-              doc.text(splitWords, 20, numericAmountY)
+              } else {
+                // Fallback: render as text
+                doc.setFontSize(12)
+                doc.setFont("helvetica", "normal")
+                const splitWords = doc.splitTextToSize(amountInWords, 100)
+                doc.text(splitWords, 20, numericAmountY)
+              }
             }
           } catch (error) {
             console.error("Error rendering Arabic text:", error)
@@ -819,10 +828,18 @@ export function useInvoiceSystem() {
         // For Arabic and Kurdish, render using HTML canvas approach since jsPDF doesn't support Arabic fonts
         if (amountLanguage === "arabic" || amountLanguage === "kurdish") {
           try {
-            // Create a canvas element to render Arabic text with VERY LARGE font for readability
-            const canvas = document.createElement("canvas")
-            const ctx = canvas.getContext("2d")
-            if (ctx) {
+            // Check if we're in a browser environment
+            if (typeof document === "undefined" || typeof window === "undefined") {
+              // Fallback: render as text if not in browser
+              doc.setFontSize(12)
+              doc.setFont("helvetica", "normal")
+              const splitWords = doc.splitTextToSize(amountInWords, 100)
+              doc.text(splitWords, 20, numericAmountY)
+            } else {
+              // Create a canvas element to render Arabic text with VERY LARGE font for readability
+              const canvas = document.createElement("canvas")
+              const ctx = canvas.getContext("2d")
+              if (ctx) {
               // Use very high resolution for crisp text
               const scale = 4
               // Make font size MUCH larger - similar to the numeric amount (16pt ≈ 22px)
@@ -888,12 +905,13 @@ export function useInvoiceSystem() {
               const imageY = numericAmountY - (imgHeight / 2)
               // Position at x=20, but ensure width doesn't exceed maxArabicWidth
               doc.addImage(imgData, "PNG", 20, imageY, imgWidth, imgHeight)
-            } else {
-              // Fallback: render as text
-              doc.setFontSize(12)
-              doc.setFont("helvetica", "normal")
-              const splitWords = doc.splitTextToSize(amountInWords, 100)
-              doc.text(splitWords, 20, numericAmountY)
+              } else {
+                // Fallback: render as text
+                doc.setFontSize(12)
+                doc.setFont("helvetica", "normal")
+                const splitWords = doc.splitTextToSize(amountInWords, 100)
+                doc.text(splitWords, 20, numericAmountY)
+              }
             }
           } catch (error) {
             console.error("Error rendering Arabic text:", error)
