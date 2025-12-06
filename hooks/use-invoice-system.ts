@@ -447,9 +447,11 @@ export function useInvoiceSystem() {
       doc.setFont("helvetica", "bold")
       doc.text("Amount Paid:", 130, amountY)
       doc.setFontSize(16)
-      doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), 130, amountY + 15)
+      const numericAmountX = 130
+      const numericAmountY = amountY + 15
+      doc.text(formatCurrencyForPDF(voucher.amount, voucher.currency as "USD" | "IQD"), numericAmountX, numericAmountY)
       
-      // Amount in words
+      // Amount in words - positioned horizontally next to the amount (same Y level)
       const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language || "english"
       if (amountLanguage) {
         const amountInWords = numberToWords(
@@ -457,12 +459,88 @@ export function useInvoiceSystem() {
           amountLanguage as "english" | "arabic" | "kurdish",
           voucher.currency as "USD" | "IQD"
         )
-        doc.setFontSize(10)
-        doc.setFont("helvetica", "normal")
-        doc.text("Amount in words:", 20, amountY + 25)
-        // Split text to fit page width (170mm width, starting at 20mm)
-        const splitWords = doc.splitTextToSize(amountInWords, 150)
-        doc.text(splitWords, 20, amountY + 35)
+        
+        // For Arabic and Kurdish, render using HTML canvas approach since jsPDF doesn't support Arabic fonts
+        if (amountLanguage === "arabic" || amountLanguage === "kurdish") {
+          try {
+            // Create a canvas element to render Arabic text with MUCH larger font
+            const canvas = document.createElement("canvas")
+            const ctx = canvas.getContext("2d")
+            if (ctx) {
+              // Set larger canvas size for better quality
+              const scale = 4 // Higher scale for better quality
+              canvas.width = 1000 * scale
+              canvas.height = 300 * scale
+              
+              // Scale context for high DPI
+              ctx.scale(scale, scale)
+              
+              // Set MUCH larger font size for Arabic/Kurdish text (will be 60px with scale 4)
+              const fontSize = 15 // This becomes 60px with scale 4
+              ctx.font = `${fontSize}px Arial, 'Arabic Typesetting', 'Traditional Arabic', sans-serif`
+              ctx.fillStyle = "#000000"
+              ctx.textAlign = "right"
+              ctx.textBaseline = "middle"
+              
+              // Split text into lines that fit
+              const maxWidth = 980
+              const words = amountInWords.split(" ")
+              const lines: string[] = []
+              let currentLine = ""
+              
+              // Build lines from right to left (RTL)
+              for (let i = words.length - 1; i >= 0; i--) {
+                const testLine = currentLine ? words[i] + " " + currentLine : words[i]
+                const metrics = ctx.measureText(testLine)
+                if (metrics.width > maxWidth && currentLine) {
+                  lines.push(currentLine)
+                  currentLine = words[i]
+                } else {
+                  currentLine = testLine
+                }
+              }
+              if (currentLine) {
+                lines.push(currentLine)
+              }
+              
+              // Draw text lines with proper spacing, centered vertically
+              const lineHeight = fontSize * 1.8
+              const totalHeight = lines.length * lineHeight
+              const startY = (300 - totalHeight) / 2 + lineHeight / 2
+              
+              lines.forEach((line, index) => {
+                ctx.fillText(line, 990, startY + index * lineHeight)
+              })
+              
+              // Convert canvas to image and add to PDF with proper size
+              const imgData = canvas.toDataURL("image/png")
+              // Calculate proper dimensions: wider for better visibility
+              const imgWidth = 100 // mm - wider for better visibility
+              const imgHeight = Math.min(12, Math.max(6, lines.length * 3))
+              // Position horizontally next to the numeric amount (same Y level, to the left)
+              doc.addImage(imgData, "PNG", 20, numericAmountY - imgHeight / 2, imgWidth, imgHeight)
+            } else {
+              // Fallback: render as text
+              doc.setFontSize(12)
+              doc.setFont("helvetica", "normal")
+              const splitWords = doc.splitTextToSize(amountInWords, 100)
+              doc.text(splitWords, 20, numericAmountY)
+            }
+          } catch (error) {
+            console.error("Error rendering Arabic text:", error)
+            // Fallback: render as text
+            doc.setFontSize(12)
+            doc.setFont("helvetica", "normal")
+            const splitWords = doc.splitTextToSize(amountInWords, 100)
+            doc.text(splitWords, 20, numericAmountY)
+          }
+        } else {
+          // For English, render normally next to the amount
+          doc.setFontSize(12)
+          doc.setFont("helvetica", "normal")
+          const splitWords = doc.splitTextToSize(amountInWords, 100)
+          doc.text(splitWords, 20, numericAmountY)
+        }
       }
 
       // Notes

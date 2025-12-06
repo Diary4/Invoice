@@ -308,3 +308,4 @@ export function numberToWords(num: number, language: AmountLanguage, currency: "
 
   return result
 }
+
