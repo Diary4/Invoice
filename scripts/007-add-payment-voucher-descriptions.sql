@@ -5,3 +5,6 @@ ADD COLUMN IF NOT EXISTS descriptions JSONB;
 
 
 
+
+
+
