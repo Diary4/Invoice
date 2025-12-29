@@ -3,15 +3,16 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Download, Edit, FileText } from "lucide-react"
+import { ArrowLeft, Printer, Edit, FileText } from "lucide-react"
 import { formatCurrency } from "../lib/currency"
+import { numberToWords } from "../lib/number-to-words"
 import type { Invoice, CompanyInfo } from "../types"
 
 interface InvoiceViewerProps {
   invoice: Invoice
   companyInfo: CompanyInfo
   onEdit: () => void
-  onDownloadPDF: () => void
+  onDownloadPDF?: () => void
   onBack: () => void
 }
 
@@ -31,10 +32,14 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Invoices
@@ -44,9 +49,9 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
             <Edit className="w-4 h-4 mr-2" />
             Edit Invoice
           </Button>
-          <Button onClick={onDownloadPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
+          <Button onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print
           </Button>
         </div>
       </div>
@@ -167,6 +172,17 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                     <span className="text-primary">{formatCurrency(invoice.total, invoice.currency)}</span>
                   </div>
                 </div>
+                {(() => {
+                  const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
+                  return amountLanguage ? (
+                    <div className="border-t pt-3">
+                      <p className="text-sm text-muted-foreground mb-1">Amount in words:</p>
+                      <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
+                        {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
+                      </p>
+                    </div>
+                  ) : null
+                })()}
               </div>
             </div>
           </div>

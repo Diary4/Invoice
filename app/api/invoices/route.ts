@@ -34,17 +34,18 @@ export async function POST(request: Request) {
       status,
       notes,
       items,
+      amount_language,
     } = invoiceData
 
     // Insert invoice
     const [invoice] = await sql`
       INSERT INTO invoices (
         invoice_number, customer_id, issue_date, due_date, currency,
-        subtotal, tax_rate, tax_amount, total, status, notes
+        subtotal, tax_rate, tax_amount, total, status, notes, amount_language
       )
       VALUES (
         ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
-        ${subtotal}, 0, 0, ${total}, ${status}, ${notes}
+        ${subtotal}, 0, 0, ${total}, ${status}, ${notes}, ${amount_language || 'english'}
       )
       RETURNING *
     `

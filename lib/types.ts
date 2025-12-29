@@ -29,6 +29,7 @@ export interface Invoice {
   status: "draft" | "sent" | "paid" | "overdue"
   notes?: string
   items?: InvoiceItem[]
+  amount_language?: "english" | "arabic" | "kurdish"
   created_at?: string
   updated_at?: string
 }

@@ -92,3 +92,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles */
+@media print {
+  .no-print,
+  nav {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+  }
+  
+  .max-w-4xl {
+    max-width: 100%;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 0;
+  }
+}

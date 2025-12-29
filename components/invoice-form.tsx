@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Trash2, Plus } from "lucide-react"
 import type { Customer, Invoice, InvoiceItem } from "../types"
 
@@ -56,6 +57,9 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   )
   const [notes, setNotes] = useState(invoice?.notes || "")
   const [currency, setCurrency] = useState<"USD" | "IQD">(invoice?.currency || "IQD")
+  const [amountLanguage, setAmountLanguage] = useState<"english" | "arabic" | "kurdish">(
+    invoice?.amountLanguage || "english"
+  )
 
   const updateItem = (index: number, field: keyof Omit<InvoiceItem, "id">, value: string | number) => {
     const newItems = [...items]
@@ -113,6 +117,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       dueDate: new Date(dueDate),
       notes: notes || undefined,
       currency,
+      amountLanguage,
     }
 
     onSave(invoiceData)
@@ -187,6 +192,28 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label>Amount in Words (Language)</Label>
+            <RadioGroup
+              value={amountLanguage}
+              onValueChange={(value: "english" | "arabic" | "kurdish") => setAmountLanguage(value)}
+              className="flex gap-6 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="english" id="invoice-english" />
+                <Label htmlFor="invoice-english" className="cursor-pointer">English</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="arabic" id="invoice-arabic" />
+                <Label htmlFor="invoice-arabic" className="cursor-pointer">Arabic</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kurdish" id="invoice-kurdish" />
+                <Label htmlFor="invoice-kurdish" className="cursor-pointer">Kurdish</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

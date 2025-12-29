@@ -12,3 +12,4 @@ ALTER COLUMN currency SET DEFAULT 'IQD';
 
 
 
+

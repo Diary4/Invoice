@@ -36,6 +36,7 @@ export interface Invoice {
   currency: "USD" | "IQD"
   status: "draft" | "sent" | "paid" | "overdue"
   notes?: string
+  amountLanguage?: "english" | "arabic" | "kurdish"
   createdAt: Date
 }
 
@@ -267,6 +268,61 @@ export function useInvoiceSystem() {
       doc.setFont("helvetica", "bold")
       doc.text("Total:", 130, totalsY + 10)
       doc.text(formatCurrencyForPDF(invoice.total, invoice.currency as "USD" | "IQD"), 170, totalsY + 10)
+
+      // Amount in words
+      const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language || "english"
+      if (amountLanguage) {
+        const amountInWords = numberToWords(
+          invoice.total,
+          amountLanguage as "english" | "arabic" | "kurdish",
+          invoice.currency as "USD" | "IQD"
+        )
+        
+        // For Arabic and Kurdish, render using HTML canvas approach since jsPDF doesn't support Arabic fonts
+        if (amountLanguage === "arabic" || amountLanguage === "kurdish") {
+          try {
+            // Check if we're in a browser environment
+            if (typeof document === "undefined" || typeof window === "undefined") {
+              // Fallback: render as text if not in browser
+              doc.setFontSize(10)
+              doc.setFont("helvetica", "normal")
+              const splitWords = doc.splitTextToSize(amountInWords, 100)
+              doc.text("Amount in words:", 20, totalsY + 20)
+              doc.text(splitWords, 20, totalsY + 30)
+            } else {
+              // Create a canvas element to render Arabic text with VERY LARGE font for readability
+              const canvas = document.createElement("canvas")
+              const ctx = canvas.getContext("2d")
+              if (ctx) {
+                canvas.width = 600
+                canvas.height = 200
+                ctx.fillStyle = "black"
+                ctx.font = "bold 24px Arial" // Large font for readability
+                ctx.textAlign = "right"
+                ctx.textBaseline = "top"
+                ctx.fillText(amountInWords, canvas.width - 20, 20)
+                
+                const imgData = canvas.toDataURL("image/png")
+                doc.addImage(imgData, "PNG", 20, totalsY + 20, 100, 30)
+              }
+            }
+          } catch (error) {
+            console.error("Error rendering Arabic/Kurdish text:", error)
+            // Fallback to regular text
+            doc.setFontSize(10)
+            doc.setFont("helvetica", "normal")
+            doc.text("Amount in words:", 20, totalsY + 20)
+            doc.text(amountInWords, 20, totalsY + 30)
+          }
+        } else {
+          // English text - render normally
+          doc.setFontSize(10)
+          doc.setFont("helvetica", "normal")
+          doc.text("Amount in words:", 20, totalsY + 20)
+          const splitWords = doc.splitTextToSize(amountInWords, 100)
+          doc.text(splitWords, 20, totalsY + 30)
+        }
+      }
 
       // Notes section
       if (invoice.notes) {

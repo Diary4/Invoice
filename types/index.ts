@@ -28,6 +28,7 @@ export interface Invoice {
   issueDate: Date
   dueDate: Date
   notes?: string
+  amountLanguage?: "english" | "arabic" | "kurdish"
   createdAt: Date
 }
 
