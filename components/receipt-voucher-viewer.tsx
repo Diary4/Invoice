@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Download, Edit, Receipt } from "lucide-react"
+import { ArrowLeft, Printer, Edit, Receipt } from "lucide-react"
 import { formatCurrency } from "../lib/currency"
 import { numberToWords } from "../lib/number-to-words"
 import type { ReceiptVoucher, CompanyInfo } from "../types"
@@ -12,7 +12,7 @@ interface ReceiptVoucherViewerProps {
   voucher: ReceiptVoucher
   companyInfo: CompanyInfo
   onEdit: () => void
-  onDownloadPDF: () => void
+  onDownloadPDF?: () => void
   onBack: () => void
 }
 
@@ -30,10 +30,14 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Receipt Vouchers
@@ -43,9 +47,9 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
             <Edit className="w-4 h-4 mr-2" />
             Edit Voucher
           </Button>
-          <Button onClick={onDownloadPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
+          <Button onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print
           </Button>
         </div>
       </div>
@@ -133,31 +137,6 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
             </div>
           </div>
 
-          {/* Amount Section */}
-          <div className="flex justify-end">
-            <div className="w-80 bg-muted/50 p-6 rounded-lg">
-              <div className="space-y-3">
-                <div className="border-b pb-3">
-                  <div className="flex justify-between font-bold text-2xl">
-                    <span>Amount Received:</span>
-                    <span className="text-primary">{formatCurrency(voucher.amount, voucher.currency)}</span>
-                  </div>
-                </div>
-                {(() => {
-                  const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language
-                  return amountLanguage ? (
-                    <div className="pt-3">
-                      <p className="text-sm text-muted-foreground mb-1">Amount in words:</p>
-                      <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
-                        {numberToWords(voucher.amount, amountLanguage as "english" | "arabic" | "kurdish", voucher.currency)}
-                      </p>
-                    </div>
-                  ) : null
-                })()}
-              </div>
-            </div>
-          </div>
-
           {/* Descriptions */}
           {((voucher.descriptions && voucher.descriptions.length > 0) || voucher.description) && (() => {
             // Normalize descriptions to DescriptionItem format
@@ -201,6 +180,30 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
               </div>
             ) : null
           })()}
+
+          {/* Amount Section */}
+          <div className="flex justify-end">
+            <div className="w-80 bg-muted/50 p-6 rounded-lg">
+              <div className="space-y-3">
+                <div className="border-b pb-3">
+                  <div className="flex justify-between font-bold text-2xl">
+                    <span>Amount Received:</span>
+                    <span className="text-primary">{formatCurrency(voucher.amount, voucher.currency)}</span>
+                  </div>
+                </div>
+                {(() => {
+                  const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language
+                  return amountLanguage ? (
+                    <div className="pt-3">
+                      <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
+                        {numberToWords(voucher.amount, amountLanguage as "english" | "arabic" | "kurdish", voucher.currency)}
+                      </p>
+                    </div>
+                  ) : null
+                })()}
+              </div>
+            </div>
+          </div>
 
           {/* Notes */}
           {voucher.notes && (

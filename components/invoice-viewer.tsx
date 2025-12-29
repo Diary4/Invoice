@@ -176,7 +176,6 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                   const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
                   return amountLanguage ? (
                     <div className="border-t pt-3">
-                      <p className="text-sm text-muted-foreground mb-1">Amount in words:</p>
                       <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
                         {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
                       </p>
