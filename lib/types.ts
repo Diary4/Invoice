@@ -14,6 +14,7 @@ export interface InvoiceItem {
   quantity: number
   unit_price: number
   total: number
+  pallet?: number
 }
 
 export interface Invoice {

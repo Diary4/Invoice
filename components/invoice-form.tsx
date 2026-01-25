@@ -40,12 +40,20 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
     }
   }
   const [items, setItems] = useState<Omit<InvoiceItem, "id">[]>(
-    invoice?.items.map((item) => ({
-      description: item.description,
-      quantity: item.quantity,
-      price: item.price,
-      total: item.total,
-    })) || [{ description: "", quantity: 1, price: 0, total: 0 }],
+    invoice?.items.map((item) => {
+      const quantity = item.quantity || 0
+      const pallet = item.pallet || 0
+      const price = item.price || 0
+      const totalQuantity = quantity * pallet
+      const total = totalQuantity * price
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        price: item.price,
+        total: total, // Recalculate based on quantity * pallet * price
+        pallet: item.pallet || 0,
+      }
+    }) || [{ description: "", quantity: 1, price: 0, total: 0, pallet: 1 }],
   )
   const [status, setStatus] = useState<Invoice["status"]>(invoice?.status || "draft")
   const [issueDate, setIssueDate] = useState(
@@ -65,15 +73,20 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    if (field === "quantity" || field === "price") {
-      newItems[index].total = newItems[index].quantity * newItems[index].price
+    // Calculate total: (quantity * pallet) * price
+    if (field === "quantity" || field === "price" || field === "pallet") {
+      const quantity = newItems[index].quantity || 0
+      const pallet = newItems[index].pallet || 0
+      const price = newItems[index].price || 0
+      const totalQuantity = quantity * pallet
+      newItems[index].total = totalQuantity * price
     }
 
     setItems(newItems)
   }
 
   const addItem = () => {
-    setItems([...items, { description: "", quantity: 1, price: 0, total: 0 }])
+    setItems([...items, { description: "", quantity: 1, price: 0, total: 0, pallet: 1 }])
   }
 
   const removeItem = (index: number) => {
@@ -243,55 +256,72 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
             </div>
 
             <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <Label>Description</Label>
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(index, "description", e.target.value)}
-                      placeholder="Item description"
-                      required
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Quantity</Label>
+              {items.map((item, index) => {
+                const totalQuantity = (item.quantity || 0) * (item.pallet || 0)
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-3">
+                      <Label>Description</Label>
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateItem(index, "description", e.target.value)}
+                        placeholder="Item description"
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Label>Qty/Pallet</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, "quantity", Number.parseInt(e.target.value) || 1)}
+                        required
+                      />
+                    </div>
+                  <div className="col-span-1">
+                    <Label>Pallet</Label>
                     <Input
                       type="number"
                       min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, "quantity", Number.parseInt(e.target.value) || 1)}
+                      value={item.pallet || 0}
+                      onChange={(e) => updateItem(index, "pallet", Number.parseInt(e.target.value) || 0)}
                       required
                     />
                   </div>
-                  <div className="col-span-2">
-                    <Label>Price</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.price}
-                      onChange={(e) => updateItem(index, "price", Number.parseFloat(e.target.value) || 0)}
-                      required
-                    />
+                    <div className="col-span-1">
+                      <Label>Total Qty</Label>
+                      <Input value={totalQuantity} disabled className="bg-muted" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Price/Item</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.price}
+                        onChange={(e) => updateItem(index, "price", Number.parseFloat(e.target.value) || 0)}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Total</Label>
+                      <Input value={formatCurrency(item.total, currency)} disabled />
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                        disabled={items.length === 1}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label>Total</Label>
-                    <Input value={formatCurrency(item.total, currency)} disabled />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

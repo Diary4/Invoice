@@ -54,8 +54,8 @@ export async function POST(request: Request) {
     if (items && items.length > 0) {
       for (const item of items) {
         await sql`
-          INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
-          VALUES (${invoice.id}, ${item.description}, ${item.quantity}, ${item.unit_price}, ${item.total})
+          INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total, pallet)
+          VALUES (${invoice.id}, ${item.description}, ${item.quantity}, ${item.unit_price}, ${item.total}, ${item.pallet || 0})
         `
       }
     }

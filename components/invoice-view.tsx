@@ -36,6 +36,7 @@ interface InvoiceData {
     quantity: number
     unit_price: number
     total: number
+    pallet?: number
   }>
 }
 
@@ -170,20 +171,27 @@ export function InvoiceView({ invoiceId, onBack }: InvoiceViewProps) {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2">Description</th>
-                    <th className="text-right py-2">Qty</th>
+                    <th className="text-right py-2">Qty/Pallet</th>
+                    <th className="text-right py-2">Pallet</th>
+                    <th className="text-right py-2">Total Qty</th>
                     <th className="text-right py-2">Unit Price</th>
                     <th className="text-right py-2">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {invoice.items.map((item) => (
-                    <tr key={item.id} className="border-b">
-                      <td className="py-3">{item.description}</td>
-                      <td className="text-right py-3">{item.quantity}</td>
-                      <td className="text-right py-3">{formatCurrency(item.unit_price, invoice.currency)}</td>
-                      <td className="text-right py-3">{formatCurrency(item.total, invoice.currency)}</td>
-                    </tr>
-                  ))}
+                  {invoice.items.map((item) => {
+                    const totalQuantity = (item.quantity || 0) * (item.pallet || 0)
+                    return (
+                      <tr key={item.id} className="border-b">
+                        <td className="py-3">{item.description}</td>
+                        <td className="text-right py-3">{item.quantity}</td>
+                        <td className="text-right py-3">{item.pallet || 0}</td>
+                        <td className="text-right py-3 font-medium">{totalQuantity}</td>
+                        <td className="text-right py-3">{formatCurrency(item.unit_price, invoice.currency)}</td>
+                        <td className="text-right py-3">{formatCurrency(item.total, invoice.currency)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

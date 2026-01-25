@@ -21,6 +21,7 @@ export interface InvoiceItem {
   quantity: number
   price: number
   total: number
+  pallet?: number
 }
 
 export interface Invoice {
@@ -174,8 +175,25 @@ export function useInvoiceSystem() {
   const generateInvoicePDF = useCallback(
     async (invoice: Invoice) => {
       const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
 
-      // Add company logo if available
+      // Left vertical strip
+      doc.setFillColor(64, 224, 208) // teal-400
+      doc.rect(0, 0, 3, pageHeight, "F")
+
+      let startY = 20
+
+      // Header Section
+      // Left side - Company name
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text("For Trading solar system,", 8, startY)
+      doc.text("Construction materials and", 8, startY + 6)
+      doc.text("For General Trading LTD", 8, startY + 12)
+
+      // Center - Logo and company name
+      const centerX = pageWidth / 2
       if (companyInfo.logo) {
         try {
           const img = new Image()
@@ -185,158 +203,207 @@ export function useInvoiceSystem() {
             img.onerror = reject
             img.src = companyInfo.logo!
           })
-          doc.addImage(img, "PNG", 20, 20, 40, 40)
+          doc.addImage(img, "PNG", centerX - 20, startY, 40, 40)
         } catch (error) {
           console.log("Logo could not be loaded, continuing without logo")
         }
       }
-
-      // Company information
-      doc.setFontSize(16)
+      
+      const companyNameParts = companyInfo.name.split(" ")
+      doc.setFontSize(18)
       doc.setFont("helvetica", "bold")
-      doc.text(companyInfo.name, 70, 30)
-
+      doc.setTextColor(37, 99, 235) // blue-600
+      doc.text(companyNameParts[0] || companyInfo.name, centerX, startY + 50)
       doc.setFontSize(10)
       doc.setFont("helvetica", "normal")
-      doc.text(companyInfo.address, 70, 40)
-      doc.text(companyInfo.phone, 70, 47)
-      doc.text(companyInfo.email, 70, 54)
-      if (companyInfo.website) {
-        doc.text(companyInfo.website, 70, 61)
-      }
+      doc.text("Solar System Energy", centerX, startY + 56)
+      doc.setTextColor(0, 0, 0) // Reset to black
 
-      // Invoice title and number
-      doc.setFontSize(24)
-      doc.setFont("helvetica", "bold")
-      doc.text("INVOICE", 20, 90)
+      // Right side - Arabic text (placeholder)
+      doc.setFontSize(10)
+      doc.text("بو بازرگانی ووزه ی خور", pageWidth - 15, startY, { align: "right" })
+      doc.text("و بینا سازی", pageWidth - 15, startY + 6, { align: "right" })
+      doc.text("و بازرگانی گشتی", pageWidth - 15, startY + 12, { align: "right" })
 
-      doc.setFontSize(12)
+      startY += 70
+
+      // Agent Information
+      doc.setFontSize(10)
       doc.setFont("helvetica", "normal")
-      doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 105)
-      doc.text(`Date: ${invoice.issueDate.toLocaleDateString()}`, 20, 115)
-      doc.text(`Due Date: ${invoice.dueDate.toLocaleDateString()}`, 20, 125)
+      doc.setTextColor(37, 99, 235) // blue-600
+      doc.text("Nanas is Exclusive Agent", 8, startY)
+      doc.setTextColor(220, 38, 38) // red-600
+      doc.setFont("helvetica", "bold")
+      doc.text("RONMA", 60, startY)
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(0, 0, 0)
+      doc.text("- Light Our Future -", 75, startY)
+      doc.setTextColor(37, 99, 235)
+      doc.text("in Iraq", 105, startY)
+      doc.setTextColor(0, 0, 0)
 
-      // Customer information
+      startY += 15
+
+      // Invoice Details
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      
+      // Left side - To and Sub
       if (invoice.customer) {
         doc.setFont("helvetica", "bold")
-        doc.text("Bill To:", 120, 105)
-        doc.setFont("helvetica", "normal")
-        doc.text(invoice.customer.name, 120, 115)
-        doc.text(invoice.customer.email, 120, 125)
+        doc.text(`To/${invoice.customer.name}`, 8, startY)
         if (invoice.customer.phone) {
-          doc.text(invoice.customer.phone, 120, 135)
+          doc.text(`/${invoice.customer.phone}`, 8, startY + 6)
         }
-        if (invoice.customer.address) {
-          doc.text(invoice.customer.address, 120, 145)
+        if (invoice.items && invoice.items.length > 0) {
+          doc.text(`Sub/${invoice.items[0].description}`, 8, startY + 12)
         }
       }
 
-      // Items table header
-      const startY = 160
-      doc.setFont("helvetica", "bold")
-      doc.setFillColor(240, 240, 240)
-      doc.rect(20, startY, 170, 10, "F")
-      doc.text("Description", 25, startY + 7)
-      doc.text("Qty", 120, startY + 7)
-      doc.text("Price", 140, startY + 7)
-      doc.text("Total", 165, startY + 7)
-
-      // Items table content
+      // Right side - Date and Invoice number
+      const formatDate = (date: Date) => {
+        const d = new Date(date)
+        return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
+      }
       doc.setFont("helvetica", "normal")
-      let currentY = startY + 15
+      doc.text(`Date: ${formatDate(invoice.issueDate)}`, pageWidth - 8, startY, { align: "right" })
+      doc.text(`Inv: ${invoice.invoiceNumber}`, pageWidth - 8, startY + 6, { align: "right" })
 
-      invoice.items.forEach((item, index) => {
-        // Alternating row colors
-        if (index % 2 === 1) {
-          doc.setFillColor(250, 250, 250)
-          doc.rect(20, currentY - 5, 170, 10, "F")
-        }
+      startY += 25
 
-        doc.text(item.description, 25, currentY)
-        doc.text(item.quantity.toString(), 125, currentY)
-        doc.text(formatCurrencyForPDF(item.price, invoice.currency as "USD" | "IQD"), 145, currentY)
-        doc.text(formatCurrencyForPDF(item.total, invoice.currency as "USD" | "IQD"), 170, currentY)
-        currentY += 10
+      // Items Table
+      const tableStartX = 8
+      const colWidths = [8, 60, 15, 12, 18, 25, 25]
+      const colHeaders = ["NO.", "DESCRIPTION OF GOODS", "pallet", "pcs", "total - PCS", `UNIT PRICE (${invoice.currency}/PCS)`, "AMOUNT"]
+      const colX = [tableStartX]
+      for (let i = 1; i < colWidths.length; i++) {
+        colX.push(colX[i - 1] + colWidths[i - 1])
+      }
+
+      // Table header
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "bold")
+      doc.setFillColor(255, 255, 255)
+      doc.rect(tableStartX, startY - 5, pageWidth - 16, 8, "F")
+      
+      colHeaders.forEach((header, i) => {
+        const align = i === 0 ? "left" : i >= colWidths.length - 2 ? "right" : i === 1 ? "left" : "center"
+        doc.text(header, colX[i], startY, { align: align as any })
       })
 
-      // Totals section
-      const totalsY = currentY + 20
-      doc.setFont("helvetica", "normal")
-      doc.text("Subtotal:", 130, totalsY)
-      doc.text(formatCurrencyForPDF(invoice.subtotal, invoice.currency as "USD" | "IQD"), 170, totalsY)
+      // Draw table borders
+      doc.setDrawColor(0, 0, 0)
+      doc.rect(tableStartX, startY - 5, pageWidth - 16, 8)
+      colX.slice(1).forEach(x => {
+        doc.line(x, startY - 5, x, startY + 3)
+      })
 
+      startY += 10
+
+      // Table rows
+      doc.setFont("helvetica", "normal")
+      invoice.items.forEach((item, index) => {
+        if (startY > pageHeight - 40) {
+          doc.addPage()
+          startY = 20
+        }
+
+        const totalQuantity = (item.quantity || 0) * ((item as any).pallet || 0)
+        const rowData = [
+          (index + 1).toString(),
+          item.description,
+          ((item as any).pallet || 0).toString(),
+          (item.quantity || 0).toString(),
+          totalQuantity.toString(),
+          formatCurrencyForPDF(item.price, invoice.currency as "USD" | "IQD"),
+          formatCurrencyForPDF(item.total, invoice.currency as "USD" | "IQD")
+        ]
+
+        // Alternating row background
+        if (index % 2 === 1) {
+          doc.setFillColor(250, 250, 250)
+          doc.rect(tableStartX, startY - 5, pageWidth - 16, 8, "F")
+        }
+
+        rowData.forEach((data, i) => {
+          const align = i === 0 ? "left" : i >= colWidths.length - 2 ? "right" : i === 1 ? "left" : "center"
+          doc.text(data, colX[i], startY, { align: align as any })
+        })
+
+        // Draw row borders
+        doc.rect(tableStartX, startY - 5, pageWidth - 16, 8)
+        colX.slice(1).forEach(x => {
+          doc.line(x, startY - 5, x, startY + 3)
+        })
+
+        startY += 8
+      })
+
+      // Total row
+      startY += 2
       doc.setFont("helvetica", "bold")
-      doc.text("Total:", 130, totalsY + 10)
-      doc.text(formatCurrencyForPDF(invoice.total, invoice.currency as "USD" | "IQD"), 170, totalsY + 10)
+      doc.rect(tableStartX, startY - 5, pageWidth - 16, 8)
+      doc.text("TOTAL:", colX[0], startY)
+      doc.text(formatCurrencyForPDF(invoice.total, invoice.currency as "USD" | "IQD"), colX[colX.length - 1], startY, { align: "right" })
+      colX.slice(1).forEach(x => {
+        doc.line(x, startY - 5, x, startY + 3)
+      })
+
+      startY += 20
+
+      // Warranty section
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text("Attached serial number with invoice", 8, startY)
+      startY += 6
+      doc.text("Ronma panel 15 years warranty", 8, startY)
+
+      startY += 15
 
       // Amount in words
-      const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language || "english"
+      const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
       if (amountLanguage) {
         const amountInWords = numberToWords(
           invoice.total,
           amountLanguage as "english" | "arabic" | "kurdish",
           invoice.currency as "USD" | "IQD"
         )
-        
-        // For Arabic and Kurdish, render using HTML canvas approach since jsPDF doesn't support Arabic fonts
-        if (amountLanguage === "arabic" || amountLanguage === "kurdish") {
-          try {
-            // Check if we're in a browser environment
-            if (typeof document === "undefined" || typeof window === "undefined") {
-              // Fallback: render as text if not in browser
-              doc.setFontSize(10)
-              doc.setFont("helvetica", "normal")
-              const splitWords = doc.splitTextToSize(amountInWords, 100)
-              doc.text("Amount in words:", 20, totalsY + 20)
-              doc.text(splitWords, 20, totalsY + 30)
-            } else {
-              // Create a canvas element to render Arabic text with VERY LARGE font for readability
-              const canvas = document.createElement("canvas")
-              const ctx = canvas.getContext("2d")
-              if (ctx) {
-                canvas.width = 600
-                canvas.height = 200
-                ctx.fillStyle = "black"
-                ctx.font = "bold 24px Arial" // Large font for readability
-                ctx.textAlign = "right"
-                ctx.textBaseline = "top"
-                ctx.fillText(amountInWords, canvas.width - 20, 20)
-                
-                const imgData = canvas.toDataURL("image/png")
-                doc.addImage(imgData, "PNG", 20, totalsY + 20, 100, 30)
-              }
-            }
-          } catch (error) {
-            console.error("Error rendering Arabic/Kurdish text:", error)
-            // Fallback to regular text
-            doc.setFontSize(10)
-            doc.setFont("helvetica", "normal")
-            doc.text("Amount in words:", 20, totalsY + 20)
-            doc.text(amountInWords, 20, totalsY + 30)
-          }
-        } else {
-          // English text - render normally
-          doc.setFontSize(10)
-          doc.setFont("helvetica", "normal")
-          doc.text("Amount in words:", 20, totalsY + 20)
-          const splitWords = doc.splitTextToSize(amountInWords, 100)
-          doc.text(splitWords, 20, totalsY + 30)
-        }
-      }
-
-      // Notes section
-      if (invoice.notes) {
-        doc.setFont("helvetica", "bold")
-        doc.text("Notes:", 20, totalsY + 40)
-        doc.setFont("helvetica", "normal")
-        const splitNotes = doc.splitTextToSize(invoice.notes, 170)
-        doc.text(splitNotes, 20, totalsY + 50)
+        doc.setFontSize(9)
+        doc.text(amountInWords, 8, startY)
+        startY += 10
       }
 
       // Footer
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "italic")
-      doc.text(`Thank you for your business! For questions, contact us at ${companyInfo.email}`, 20, 280)
+      startY = pageHeight - 30
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Add: ${companyInfo.address}`, 8, startY)
+      if (companyInfo.website) {
+        doc.text(companyInfo.website, 8, startY + 5)
+      }
+      doc.text(companyInfo.phone, 8, startY + 10)
+
+      // QR Code placeholder
+      doc.rect(pageWidth - 30, startY, 20, 20)
+      doc.setFontSize(6)
+      doc.text("QR", pageWidth - 20, startY + 12, { align: "center" })
+
+      // Decorative pattern at bottom
+      const patternY = pageHeight - 8
+      for (let i = 0; i < 20; i++) {
+        const color = i % 3 === 0 ? [64, 224, 208] : i % 3 === 1 ? [251, 146, 60] : [59, 130, 246]
+        doc.setFillColor(color[0], color[1], color[2])
+        doc.rect(8 + i * 9, patternY, 8, 4, "F")
+      }
+
+      // Notes section (if any)
+      if (invoice.notes) {
+        startY += 15
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "normal")
+        const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 16)
+        doc.text(splitNotes, 8, startY)
+      }
 
       // Save the PDF
       doc.save(`${invoice.invoiceNumber}.pdf`)

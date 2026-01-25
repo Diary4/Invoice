@@ -12,7 +12,6 @@ interface InvoiceListProps {
   onViewInvoice: (id: string) => void
   onEditInvoice: (id: string) => void
   onDeleteInvoice: (id: string) => void
-  onDownloadPDF: (invoice: Invoice) => void
 }
 
 export function InvoiceList({
@@ -20,7 +19,6 @@ export function InvoiceList({
   onViewInvoice,
   onEditInvoice,
   onDeleteInvoice,
-  onDownloadPDF,
 }: InvoiceListProps) {
   const getStatusColor = (status: Invoice["status"]) => {
     switch (status) {
@@ -77,10 +75,7 @@ export function InvoiceList({
                   <Button size="sm" variant="outline" onClick={() => onEditInvoice(invoice.id)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onDownloadPDF(invoice)}>
-                    <Download className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => onDeleteInvoice(invoice.id)}>
+.                  <Button size="sm" variant="outline" onClick={() => onDeleteInvoice(invoice.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
