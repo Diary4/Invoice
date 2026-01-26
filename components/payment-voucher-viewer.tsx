@@ -77,21 +77,14 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
           {/* Company Header */}
           <div className="flex justify-between items-start border-b pb-6">
             <div className="flex items-start gap-4">
-              {companyInfo.logo && (
+              
                 <img
-                  src={companyInfo.logo || "/placeholder.svg"}
+                  src="/logo.jpeg"
                   alt="Company Logo"
                   className="w-16 h-16 object-contain rounded-lg border"
                 />
-              )}
-              <div>
-                <h2 className="text-xl font-bold text-primary">{companyInfo.name}</h2>
-                <div className="text-sm text-muted-foreground mt-2 space-y-1">
-                  <p>{companyInfo.address}</p>
-                  <p>{companyInfo.phone}</p>
-                  <p>{companyInfo.email}</p>
-                  {companyInfo.website && <p>{companyInfo.website}</p>}
-                </div>
+              <div className="flex flex-col justify-center items-center">
+                <h2 className="text-xl font-bold text-primary">Nanas Energy Company</h2>
               </div>
             </div>
             <div className="text-right">

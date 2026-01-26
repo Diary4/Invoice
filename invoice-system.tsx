@@ -97,15 +97,26 @@ export default function InvoiceSystem() {
     setCurrentView("edit-invoice")
   }
 
-  const handleCreateInvoice = (invoiceData: any) => {
-    addInvoice(invoiceData)
-    setCurrentView("invoices")
+  const handleCreateInvoice = async (invoiceData: any) => {
+    try {
+      await addInvoice(invoiceData)
+      setCurrentView("invoices")
+    } catch (error) {
+      console.error("Failed to create invoice:", error)
+      // You could show a toast notification here
+      alert(error instanceof Error ? error.message : "Failed to create invoice. Please try again.")
+    }
   }
 
-  const handleUpdateInvoice = (invoiceData: any) => {
+  const handleUpdateInvoice = async (invoiceData: any) => {
     if (selectedInvoiceId) {
-      updateInvoice(selectedInvoiceId, invoiceData)
-      setCurrentView("invoices")
+      try {
+        await updateInvoice(selectedInvoiceId, invoiceData)
+        setCurrentView("invoices")
+      } catch (error) {
+        console.error("Failed to update invoice:", error)
+        alert(error instanceof Error ? error.message : "Failed to update invoice. Please try again.")
+      }
     }
   }
 

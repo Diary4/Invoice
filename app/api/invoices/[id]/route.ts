@@ -52,3 +52,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const invoiceId = Number.parseInt(params.id)
+
+    // Delete invoice items first (foreign key constraint)
+    await sql`
+      DELETE FROM invoice_items
+      WHERE invoice_id = ${invoiceId}
+    `
+
+    // Then delete the invoice
+    await sql`
+      DELETE FROM invoices
+      WHERE id = ${invoiceId}
+    `
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting invoice:", error)
+    return NextResponse.json({ error: "Failed to delete invoice" }, { status: 500 })
+  }
+}

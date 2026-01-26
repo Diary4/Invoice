@@ -98,7 +98,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
   const total = subtotal
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     let selectedCustomer = null
@@ -133,7 +133,12 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       amountLanguage,
     }
 
-    onSave(invoiceData)
+    try {
+      await onSave(invoiceData)
+    } catch (error) {
+      // Error is already handled in invoice-system.tsx, but we can add additional handling here if needed
+      console.error("Error in invoice form submit:", error)
+    }
   }
 
   return (

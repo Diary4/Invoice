@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import jsPDF from "jspdf"
 import { formatCurrencyForPDF } from "../lib/currency"
 import { numberToWords } from "../lib/number-to-words"
@@ -51,6 +51,140 @@ export interface CompanyInfo {
   primaryColor?: string
 }
 
+// Helper function to transform database row to Customer
+function transformCustomer(row: any): Customer {
+  return {
+    id: String(row.id),
+    name: row.name,
+    email: row.email,
+    phone: row.phone || undefined,
+    address: row.address || undefined,
+    createdAt: new Date(row.created_at),
+  }
+}
+
+// Helper function to transform database row to Invoice
+function transformInvoice(row: any, items?: any[]): Invoice {
+  return {
+    id: String(row.id),
+    invoiceNumber: row.invoice_number,
+    customerId: row.customer_id ? String(row.customer_id) : null,
+    customer: row.customer_name
+      ? {
+          id: String(row.customer_id),
+          name: row.customer_name,
+          email: row.customer_email || "",
+          phone: undefined,
+          address: undefined,
+          createdAt: new Date(),
+        }
+      : undefined,
+    issueDate: new Date(row.issue_date),
+    dueDate: new Date(row.due_date),
+    items: items
+      ? items.map((item: any) => ({
+          id: String(item.id),
+          description: item.description,
+          quantity: item.quantity,
+          price: Number(item.unit_price),
+          total: Number(item.total),
+          pallet: item.pallet || 0,
+        }))
+      : [],
+    subtotal: Number(row.subtotal),
+    total: Number(row.total),
+    currency: row.currency as "USD" | "IQD",
+    status: row.status as "draft" | "sent" | "paid" | "overdue",
+    notes: row.notes || undefined,
+    amountLanguage: (row.amount_language || "english") as "english" | "arabic" | "kurdish",
+    createdAt: new Date(row.created_at),
+  }
+}
+
+// Helper function to transform database row to PaymentVoucher
+function transformPaymentVoucher(row: any): PaymentVoucher {
+  let descriptions: string[] | { description: string; amount: number }[] | undefined
+  if (row.descriptions) {
+    try {
+      const parsed = typeof row.descriptions === 'string' ? JSON.parse(row.descriptions) : row.descriptions
+      descriptions = Array.isArray(parsed) ? parsed : undefined
+    } catch {
+      descriptions = undefined
+    }
+  }
+
+  return {
+    id: String(row.id),
+    voucherNumber: row.voucher_number,
+    customerId: row.customer_id ? String(row.customer_id) : null,
+    customer: row.customer_name
+      ? {
+          id: String(row.customer_id),
+          name: row.customer_name,
+          email: row.customer_email || "",
+          phone: undefined,
+          address: undefined,
+          createdAt: new Date(),
+        }
+      : undefined,
+    paymentDate: new Date(row.payment_date),
+    currency: row.currency as "USD" | "IQD",
+    amount: Number(row.amount),
+    paymentMethod: row.payment_method || undefined,
+    referenceNumber: row.reference_number || undefined,
+    description: row.description || undefined,
+    descriptions,
+    status: row.status as "draft" | "completed" | "cancelled",
+    notes: row.notes || undefined,
+    name: row.name || undefined,
+    accountantName: row.accountant_name || undefined,
+    amountLanguage: (row.amount_language || "english") as "english" | "arabic" | "kurdish",
+    createdAt: new Date(row.created_at),
+  }
+}
+
+// Helper function to transform database row to ReceiptVoucher
+function transformReceiptVoucher(row: any): ReceiptVoucher {
+  let descriptions: string[] | { description: string; amount: number }[] | undefined
+  if (row.descriptions) {
+    try {
+      const parsed = typeof row.descriptions === 'string' ? JSON.parse(row.descriptions) : row.descriptions
+      descriptions = Array.isArray(parsed) ? parsed : undefined
+    } catch {
+      descriptions = undefined
+    }
+  }
+
+  return {
+    id: String(row.id),
+    voucherNumber: row.voucher_number,
+    customerId: row.customer_id ? String(row.customer_id) : null,
+    customer: row.customer_name
+      ? {
+          id: String(row.customer_id),
+          name: row.customer_name,
+          email: row.customer_email || "",
+          phone: undefined,
+          address: undefined,
+          createdAt: new Date(),
+        }
+      : undefined,
+    receiptDate: new Date(row.receipt_date),
+    currency: row.currency as "USD" | "IQD",
+    amount: Number(row.amount),
+    paymentMethod: row.payment_method || undefined,
+    referenceNumber: row.reference_number || undefined,
+    description: row.description || undefined,
+    descriptions,
+    status: row.status as "draft" | "completed" | "cancelled",
+    notes: row.notes || undefined,
+    deliveredBy: row.delivered_by || undefined,
+    receivedBy: row.received_by || undefined,
+    amountLanguage: (row.amount_language || "english") as "english" | "arabic" | "kurdish",
+    createdAt: new Date(row.created_at),
+  }
+}
+
 export function useInvoiceSystem() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -65,97 +199,386 @@ export function useInvoiceSystem() {
     logo: "/placeholder-logo.png",
     primaryColor: "#000000",
   })
+  const [loading, setLoading] = useState(true)
 
-  // Customer management
-  const addCustomer = useCallback((customerData: Omit<Customer, "id" | "createdAt">) => {
-    const newCustomer: Customer = {
-      ...customerData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
+  // Fetch all data on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        
+        // Fetch customers
+        const customersRes = await fetch("/api/customers")
+        if (customersRes.ok) {
+          const customersData = await customersRes.json()
+          setCustomers(customersData.map(transformCustomer))
+        }
+
+        // Fetch invoices
+        const invoicesRes = await fetch("/api/invoices")
+        if (invoicesRes.ok) {
+          const invoicesData = await invoicesRes.json()
+          // Fetch items for each invoice
+          const invoicesWithItems = await Promise.all(
+            invoicesData.map(async (invoice: any) => {
+              try {
+                const itemsRes = await fetch(`/api/invoices/${invoice.id}`)
+                if (itemsRes.ok) {
+                  const invoiceWithItems = await itemsRes.json()
+                  return transformInvoice(invoice, invoiceWithItems.items || [])
+                }
+                return transformInvoice(invoice, [])
+              } catch {
+                return transformInvoice(invoice, [])
+              }
+            })
+          )
+          setInvoices(invoicesWithItems)
+        }
+
+        // Fetch payment vouchers
+        const paymentVouchersRes = await fetch("/api/payment-vouchers")
+        if (paymentVouchersRes.ok) {
+          const paymentVouchersData = await paymentVouchersRes.json()
+          setPaymentVouchers(paymentVouchersData.map(transformPaymentVoucher))
+        }
+
+        // Fetch receipt vouchers
+        const receiptVouchersRes = await fetch("/api/receipt-vouchers")
+        if (receiptVouchersRes.ok) {
+          const receiptVouchersData = await receiptVouchersRes.json()
+          setReceiptVouchers(receiptVouchersData.map(transformReceiptVoucher))
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        setLoading(false)
+      }
     }
-    setCustomers((prev) => [...prev, newCustomer])
-    return newCustomer
+
+    fetchData()
   }, [])
 
-  const updateCustomer = useCallback((id: string, updates: Partial<Customer>) => {
+  // Customer management
+  const addCustomer = useCallback(async (customerData: Omit<Customer, "id" | "createdAt">) => {
+    try {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customerData),
+      })
+      
+      if (response.ok) {
+        const newCustomer = await response.json()
+        const transformed = transformCustomer(newCustomer)
+        setCustomers((prev) => [...prev, transformed])
+        return transformed
+      } else {
+        throw new Error("Failed to create customer")
+      }
+    } catch (error) {
+      console.error("Error adding customer:", error)
+      throw error
+    }
+  }, [])
+
+  const updateCustomer = useCallback(async (id: string, updates: Partial<Customer>) => {
+    // Note: Update API endpoint would need to be created
     setCustomers((prev) => prev.map((customer) => (customer.id === id ? { ...customer, ...updates } : customer)))
   }, [])
 
-  const deleteCustomer = useCallback((id: string) => {
+  const deleteCustomer = useCallback(async (id: string) => {
+    // Note: Delete API endpoint would need to be created
     setCustomers((prev) => prev.filter((customer) => customer.id !== id))
     setInvoices((prev) => prev.filter((invoice) => invoice.customerId !== id))
   }, [])
 
   // Invoice management
   const addInvoice = useCallback(
-    (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
-      const invoiceNumber = `INV-${String(invoices.length + 1).padStart(4, "0")}`
-      const newInvoice: Invoice = {
-        ...invoiceData,
-        id: Date.now().toString(),
-        invoiceNumber,
-        createdAt: new Date(),
+    async (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
+      try {
+        // Generate invoice number - use date + sequence to ensure uniqueness
+        const now = new Date()
+        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '')
+        const timeStr = now.getTime().toString().slice(-6)
+        const invoiceNumber = `INV-${dateStr}-${timeStr}`
+        
+        const requestBody = {
+          invoice_number: invoiceNumber,
+          customer_id: invoiceData.customerId ? Number.parseInt(invoiceData.customerId, 10) : null,
+          issue_date: invoiceData.issueDate.toISOString().split("T")[0],
+          due_date: invoiceData.dueDate.toISOString().split("T")[0],
+          currency: invoiceData.currency,
+          subtotal: invoiceData.subtotal,
+          total: invoiceData.total,
+          status: invoiceData.status,
+          notes: invoiceData.notes || null,
+          amount_language: invoiceData.amountLanguage || "english",
+          items: invoiceData.items.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.price,
+            total: item.total,
+            pallet: item.pallet || 0,
+          })),
+        }
+
+        console.log("Creating invoice with data:", requestBody)
+
+        let response: Response
+        let responseText: string
+        
+        try {
+          response = await fetch("/api/invoices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          })
+          responseText = await response.text()
+          console.log("API Response Status:", response.status)
+          console.log("API Response Text:", responseText)
+        } catch (fetchError) {
+          console.error("Network error fetching invoice API:", fetchError)
+          throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`)
+        }
+
+        if (response.ok) {
+          let newInvoice
+          try {
+            newInvoice = JSON.parse(responseText)
+          } catch (parseError) {
+            console.error("Failed to parse response as JSON:", parseError)
+            throw new Error("Invalid response from server")
+          }
+
+          // Fetch the complete invoice with items
+          try {
+            const invoiceRes = await fetch(`/api/invoices/${newInvoice.id}`)
+            if (invoiceRes.ok) {
+              const invoiceWithItems = await invoiceRes.json()
+              const transformed = transformInvoice(invoiceWithItems, invoiceWithItems.items || [])
+              setInvoices((prev) => [...prev, transformed])
+              return transformed
+            }
+          } catch (error) {
+            console.error("Error fetching invoice items:", error)
+          }
+          // Fallback if items fetch fails
+          const transformed = transformInvoice(newInvoice, [])
+          setInvoices((prev) => [...prev, transformed])
+          return transformed
+        } else {
+          // Get error message from response
+          let errorMessage = `Failed to create invoice (Status: ${response.status})`
+          let errorDetails = ""
+          
+          if (responseText) {
+            try {
+              const errorData = JSON.parse(responseText)
+              console.error("API Error Data (full):", JSON.stringify(errorData, null, 2))
+              
+              // Try to get the most detailed error message
+              if (errorData.message) {
+                errorMessage = errorData.message
+                errorDetails = errorData.details || ""
+              } else if (errorData.details) {
+                errorMessage = errorData.details
+              } else if (errorData.error) {
+                errorMessage = errorData.error
+                if (errorData.details) {
+                  errorDetails = errorData.details
+                }
+              }
+              
+              // Combine message and details for a more informative error
+              if (errorDetails && errorDetails !== errorMessage) {
+                errorMessage = `${errorMessage}\nDetails: ${errorDetails}`
+              }
+            } catch (parseError) {
+              // If parsing fails, use the raw response text
+              if (responseText.length > 0) {
+                errorMessage = responseText.substring(0, 500) // Increased length
+              }
+              console.error("Failed to parse error response. Raw text:", responseText)
+            }
+          }
+          
+          console.error("Final error message:", errorMessage)
+          const finalError = new Error(errorMessage)
+          throw finalError
+        }
+      } catch (error) {
+        console.error("Error adding invoice:", error)
+        // Re-throw with better error message if it's not already an Error
+        if (error instanceof Error) {
+          throw error
+        } else {
+          throw new Error(`Failed to create invoice: ${String(error)}`)
+        }
       }
-      setInvoices((prev) => [...prev, newInvoice])
-      return newInvoice
     },
     [invoices.length],
   )
 
-  const updateInvoice = useCallback((id: string, updates: Partial<Invoice>) => {
+  const updateInvoice = useCallback(async (id: string, updates: Partial<Invoice>) => {
+    // Note: Update API endpoint would need to be created
     setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...updates } : invoice)))
   }, [])
 
-  const deleteInvoice = useCallback((id: string) => {
-    setInvoices((prev) => prev.filter((invoice) => invoice.id !== id))
+  const deleteInvoice = useCallback(async (id: string) => {
+    // Note: Delete API endpoint would need to be created
+    try {
+      const response = await fetch(`/api/invoices/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        setInvoices((prev) => prev.filter((invoice) => invoice.id !== id))
+      }
+    } catch (error) {
+      console.error("Error deleting invoice:", error)
+    }
   }, [])
 
   // Payment Voucher management
   const addPaymentVoucher = useCallback(
-    (voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
-      const voucherNumber = `PV-${String(paymentVouchers.length + 1).padStart(4, "0")}`
-      const newVoucher: PaymentVoucher = {
-        ...voucherData,
-        id: Date.now().toString(),
-        voucherNumber,
-        createdAt: new Date(),
+    async (voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
+      try {
+        const voucherNumber = `PV-${String(paymentVouchers.length + 1).padStart(4, "0")}`
+        
+        const response = await fetch("/api/payment-vouchers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            voucher_number: voucherNumber,
+            customer_id: voucherData.customerId ? Number.parseInt(voucherData.customerId, 10) : null,
+            payment_date: voucherData.paymentDate.toISOString().split("T")[0],
+            currency: voucherData.currency,
+            amount: voucherData.amount,
+            payment_method: voucherData.paymentMethod || null,
+            reference_number: voucherData.referenceNumber || null,
+            description: voucherData.description || null,
+            descriptions: voucherData.descriptions || null,
+            status: voucherData.status,
+            notes: voucherData.notes || null,
+            name: voucherData.name || null,
+            accountant_name: voucherData.accountantName || null,
+            amount_language: voucherData.amountLanguage || "english",
+          }),
+        })
+
+        if (response.ok) {
+          const newVoucher = await response.json()
+          const transformed = transformPaymentVoucher(newVoucher)
+          setPaymentVouchers((prev) => [...prev, transformed])
+          return transformed
+        } else {
+          // Get error message from response
+          let errorMessage = "Failed to create payment voucher"
+          try {
+            const errorData = await response.json()
+            errorMessage = errorData.error || errorMessage
+            console.error("API Error:", errorData)
+          } catch {
+            console.error("API Error Status:", response.status, response.statusText)
+          }
+          throw new Error(errorMessage)
+        }
+      } catch (error) {
+        console.error("Error adding payment voucher:", error)
+        throw error
       }
-      setPaymentVouchers((prev) => [...prev, newVoucher])
-      return newVoucher
     },
     [paymentVouchers.length],
   )
 
-  const updatePaymentVoucher = useCallback((id: string, updates: Partial<PaymentVoucher>) => {
+  const updatePaymentVoucher = useCallback(async (id: string, updates: Partial<PaymentVoucher>) => {
+    // Note: Update API endpoint would need to be created
     setPaymentVouchers((prev) => prev.map((voucher) => (voucher.id === id ? { ...voucher, ...updates } : voucher)))
   }, [])
 
-  const deletePaymentVoucher = useCallback((id: string) => {
-    setPaymentVouchers((prev) => prev.filter((voucher) => voucher.id !== id))
+  const deletePaymentVoucher = useCallback(async (id: string) => {
+    // Note: Delete API endpoint would need to be created
+    try {
+      const response = await fetch(`/api/payment-vouchers/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        setPaymentVouchers((prev) => prev.filter((voucher) => voucher.id !== id))
+      }
+    } catch (error) {
+      console.error("Error deleting payment voucher:", error)
+    }
   }, [])
 
   // Receipt Voucher management
   const addReceiptVoucher = useCallback(
-    (voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
-      const voucherNumber = `RV-${String(receiptVouchers.length + 1).padStart(4, "0")}`
-      const newVoucher: ReceiptVoucher = {
-        ...voucherData,
-        id: Date.now().toString(),
-        voucherNumber,
-        createdAt: new Date(),
+    async (voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
+      try {
+        const voucherNumber = `RV-${String(receiptVouchers.length + 1).padStart(4, "0")}`
+        
+        const response = await fetch("/api/receipt-vouchers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            voucher_number: voucherNumber,
+            customer_id: voucherData.customerId ? Number.parseInt(voucherData.customerId, 10) : null,
+            receipt_date: voucherData.receiptDate.toISOString().split("T")[0],
+            currency: voucherData.currency,
+            amount: voucherData.amount,
+            payment_method: voucherData.paymentMethod || null,
+            reference_number: voucherData.referenceNumber || null,
+            description: voucherData.description || null,
+            descriptions: voucherData.descriptions || null,
+            status: voucherData.status,
+            notes: voucherData.notes || null,
+            delivered_by: voucherData.deliveredBy || null,
+            received_by: voucherData.receivedBy || null,
+            amount_language: voucherData.amountLanguage || "english",
+          }),
+        })
+
+        if (response.ok) {
+          const newVoucher = await response.json()
+          const transformed = transformReceiptVoucher(newVoucher)
+          setReceiptVouchers((prev) => [...prev, transformed])
+          return transformed
+        } else {
+          // Get error message from response
+          let errorMessage = "Failed to create receipt voucher"
+          try {
+            const errorData = await response.json()
+            errorMessage = errorData.error || errorMessage
+            console.error("API Error:", errorData)
+          } catch {
+            console.error("API Error Status:", response.status, response.statusText)
+          }
+          throw new Error(errorMessage)
+        }
+      } catch (error) {
+        console.error("Error adding receipt voucher:", error)
+        throw error
       }
-      setReceiptVouchers((prev) => [...prev, newVoucher])
-      return newVoucher
     },
     [receiptVouchers.length],
   )
 
-  const updateReceiptVoucher = useCallback((id: string, updates: Partial<ReceiptVoucher>) => {
+  const updateReceiptVoucher = useCallback(async (id: string, updates: Partial<ReceiptVoucher>) => {
+    // Note: Update API endpoint would need to be created
     setReceiptVouchers((prev) => prev.map((voucher) => (voucher.id === id ? { ...voucher, ...updates } : voucher)))
   }, [])
 
-  const deleteReceiptVoucher = useCallback((id: string) => {
-    setReceiptVouchers((prev) => prev.filter((voucher) => voucher.id !== id))
+  const deleteReceiptVoucher = useCallback(async (id: string) => {
+    // Note: Delete API endpoint would need to be created
+    try {
+      const response = await fetch(`/api/receipt-vouchers/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        setReceiptVouchers((prev) => prev.filter((voucher) => voucher.id !== id))
+      }
+    } catch (error) {
+      console.error("Error deleting receipt voucher:", error)
+    }
   }, [])
 
   // Company info management
@@ -1156,6 +1579,7 @@ export function useInvoiceSystem() {
     receiptVouchers,
     companyInfo,
     stats,
+    loading,
     addCustomer,
     updateCustomer,
     deleteCustomer,
