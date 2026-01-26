@@ -1,4 +1,4 @@
-import { neon, NeonConfig } from "@neondatabase/serverless"
+import { neon } from "@neondatabase/serverless"
 
 // Lazy initialization to avoid build-time errors and work in production
 let sqlInstance: ReturnType<typeof neon> | null = null
@@ -12,11 +12,6 @@ function getSql() {
         ? "postgresql://neondb_owner:npg_nhKBX5utDsy6@ep-noisy-forest-a83t4wa8-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
         : null)
     
-    // Remove channel_binding parameter as it can cause issues in serverless environments
-    if (databaseUrl && databaseUrl.includes("channel_binding")) {
-      databaseUrl = databaseUrl.replace(/[&?]channel_binding=[^&]*/g, '')
-    }
-    
     if (!databaseUrl) {
       throw new Error(
         "DATABASE_URL environment variable is not set. " +
@@ -25,13 +20,23 @@ function getSql() {
       )
     }
     
+    // Clean up the connection string
+    // Remove channel_binding parameter as it can cause issues in serverless environments
+    if (databaseUrl.includes("channel_binding")) {
+      databaseUrl = databaseUrl.replace(/[&?]channel_binding=[^&]*/g, '')
+    }
+    
+    // Ensure we're using the pooler endpoint (important for serverless)
+    if (!databaseUrl.includes("-pooler.") && !databaseUrl.includes("pooler")) {
+      console.warn("Warning: Not using pooler endpoint. This may cause connection issues in serverless environments.")
+    }
+    
     try {
-      // Configure Neon for better serverless compatibility
-      const config: NeonConfig = {
+      // Use default Neon configuration - it handles serverless environments well
+      // The neon() function automatically uses fetchConnectionCache in serverless
+      sqlInstance = neon(databaseUrl, {
         fetchConnectionCache: true,
-      }
-      
-      sqlInstance = neon(databaseUrl, config)
+      })
     } catch (error) {
       console.error("Error initializing Neon connection:", error)
       throw new Error(`Error connecting to database: ${error instanceof Error ? error.message : String(error)}`)
