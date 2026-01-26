@@ -173,7 +173,7 @@ export function InvoiceView({ invoiceId, onBack }: InvoiceViewProps) {
                     <th className="text-left py-2">Description</th>
                     <th className="text-right py-2">Qty/Pallet</th>
                     <th className="text-right py-2">Pallet</th>
-                    <th className="text-right py-2">Total Qty</th>
+                    <th className="text-right py-2">T/PCS</th>
                     <th className="text-right py-2">Unit Price</th>
                     <th className="text-right py-2">Total</th>
                   </tr>

@@ -62,40 +62,21 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
       </div>
 
       {/* Invoice Card - Made more compact */}
-      <Card className="max-w-6xl mx-auto">
-        <CardHeader className="pb-4">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-xl">{invoice.invoiceNumber}</CardTitle>
-                <p className="text-sm text-muted-foreground">Invoice Details</p>
-              </div>
-            </div>
-            <Badge className={getStatusColor(invoice.status)}>
-              {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-            </Badge>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="space-y-6">
           {/* Company Header - Compact */}
           <div className="flex justify-between items-start border-b pb-4">
             <div className="flex items-start gap-3">
-              {companyInfo.logo && (
-                <img
-                  src={companyInfo.logo || "/placeholder.svg"}
-                  alt="Company Logo"
-                  className="w-12 h-12 object-contain"
-                />
-              )}
+              <img
+                src="/logo.jpeg"
+                alt="Company Logo"
+                className="w-12 h-12 object-contain"
+              />
               <div>
-                <h2 className="text-lg font-bold text-primary">{companyInfo.name}</h2>
+                <h2 className="text-lg font-bold text-primary">Nanas Energy Company</h2>
                 <div className="text-xs text-muted-foreground mt-1">
-                  <p>{companyInfo.address}</p>
-                  <p>{companyInfo.phone}</p>
+                  <p>Erbil, Erbil Governorate, Trade City,B5 44001</p>
+                  <p>00964 7504565362 - 00964 7500062262</p>
                 </div>
               </div>
             </div>
@@ -134,34 +115,34 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
             </div>
           </div>
 
-          {/* Items Table - More compact */}
+          {/* Items Table - With borders */}
           <div>
             <h3 className="font-semibold text-sm text-primary mb-2">Items & Services</h3>
-            <div className="border rounded overflow-hidden">
-              <table className="w-full border-collapse text-sm">
-                <thead className="bg-primary text-primary-foreground">
-                  <tr>
-                    <th className="text-left p-2 font-medium">NO.</th>
-                    <th className="text-left p-2 font-medium">DESCRIPTION OF GOODS</th>
-                    <th className="text-center p-2 font-medium">pallet</th>
-                    <th className="text-center p-2 font-medium">pcs</th>
-                    <th className="text-center p-2 font-medium">total - PCS</th>
-                    <th className="text-right p-2 font-medium">UNIT PRICE</th>
-                    <th className="text-right p-2 font-medium">AMOUNT</th>
+            <div className="border-1">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="text-left p-2 font-bold border-r border-b border-gray-300">NO.</th>
+                    <th className="text-left p-2 font-bold border-r border-b border-gray-300">DESCRIPTION</th>
+                    <th className="text-center p-2 font-bold border-r border-b border-gray-300">PCS</th>
+                    <th className="text-center p-2 font-bold border-r border-b border-gray-300">Pallet</th>
+                    <th className="text-center p-2 font-bold border-r border-b border-gray-300">T/PCS</th>
+                    <th className="text-right p-2 font-bold border-r border-b border-gray-300">UNIT PRICE</th>
+                    <th className="text-right p-2 font-bold border-b border-gray-300">AMOUNT</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoice.items.map((item, index) => {
                     const totalQuantity = (item.quantity || 0) * (item.pallet || 0)
                     return (
-                      <tr key={item.id} className={index % 2 === 0 ? "bg-muted/25" : "bg-background"}>
-                        <td className="p-2 text-center">{index + 1}</td>
-                        <td className="p-2">{item.description}</td>
-                        <td className="p-2 text-center">{item.pallet || 0}</td>
-                        <td className="p-2 text-center">{item.quantity}</td>
-                        <td className="p-2 text-center font-medium">{totalQuantity}</td>
-                        <td className="p-2 text-right">{formatCurrency(item.price, invoice.currency)}</td>
-                        <td className="p-2 text-right font-medium">{formatCurrency(item.total, invoice.currency)}</td>
+                      <tr key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                        <td className="p-2 text-center border-r border-b border-gray-300">{index + 1}</td>
+                        <td className="p-2 border-r border-b border-gray-300">{item.description}</td>
+                        <td className="p-2 text-center border-r border-b border-gray-300">{item.quantity}</td>
+                        <td className="p-2 text-center border-r border-b border-gray-300">{item.pallet || 0}</td>
+                        <td className="p-2 text-center font-medium border-r border-b border-gray-300">{totalQuantity}</td>
+                        <td className="p-2 text-right border-r border-b border-gray-300">{formatCurrency(item.price, invoice.currency)}</td>
+                        <td className="p-2 text-right font-medium border-b border-gray-300">{formatCurrency(item.total, invoice.currency)}</td>
                       </tr>
                     )
                   })}
@@ -172,25 +153,25 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
 
           {/* Totals - Compact */}
           <div className="flex justify-end">
-            <div className="w-64 bg-muted/50 p-4 rounded">
+            <div className="w-full bg-muted/50 p-4 rounded">
               <div className="space-y-2">
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-bold">
                     <span>TOTAL:</span>
+                    {/* Amount in Words */}
+                    {(() => {
+                      const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
+                      return amountLanguage ? (
+                        <div className="border-t pt-2">
+                          <p className="font-medium text-xs" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
+                            {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
+                          </p>
+                        </div>
+                      ) : null
+                    })()}
                     <span className="text-primary">{formatCurrency(invoice.total, invoice.currency)}</span>
                   </div>
                 </div>
-                {/* Amount in Words */}
-                {(() => {
-                  const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
-                  return amountLanguage ? (
-                    <div className="border-t pt-2">
-                      <p className="font-medium text-xs" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
-                        {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
-                      </p>
-                    </div>
-                  ) : null
-                })()}
               </div>
             </div>
           </div>
@@ -229,10 +210,10 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
           {/* Footer - Compact */}
           <div className="border-t pt-4 text-center text-xs text-muted-foreground">
             <p className="mb-1">Thank you for your business!</p>
-            <p>For questions about this invoice, please contact us at {companyInfo.email}</p>
+            <p>For questions about this invoice, please contact us at info@nanasenergy.co</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
