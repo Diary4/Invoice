@@ -5,7 +5,7 @@ let sqlInstance: ReturnType<typeof neon> | null = null
 
 function getSql() {
   if (!sqlInstance) {
-    const databaseUrl = process.env.DATABASE_URL
+    const databaseUrl = "postgresql://neondb_owner:npg_nhKBX5utDsy6@ep-noisy-forest-a83t4wa8-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require"
     if (!databaseUrl) {
       throw new Error(
         "DATABASE_URL environment variable is not set. " +
