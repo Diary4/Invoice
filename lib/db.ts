@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { neon, NeonConfig } from "@neondatabase/serverless"
 
 // Lazy initialization to avoid build-time errors and work in production
 let sqlInstance: ReturnType<typeof neon> | null = null
@@ -7,10 +7,15 @@ function getSql() {
   if (!sqlInstance) {
     // Get database URL from environment variable (required in production)
     // Fallback to hardcoded URL only for local development
-    const databaseUrl = process.env.DATABASE_URL || 
+    let databaseUrl = process.env.DATABASE_URL || 
       (process.env.NODE_ENV === 'development' 
-        ? "postgresql://neondb_owner:npg_nhKBX5utDsy6@ep-noisy-forest-a83t4wa8-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require"
+        ? "postgresql://neondb_owner:npg_nhKBX5utDsy6@ep-noisy-forest-a83t4wa8-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
         : null)
+    
+    // Remove channel_binding parameter as it can cause issues in serverless environments
+    if (databaseUrl && databaseUrl.includes("channel_binding")) {
+      databaseUrl = databaseUrl.replace(/[&?]channel_binding=[^&]*/g, '')
+    }
     
     if (!databaseUrl) {
       throw new Error(
@@ -20,7 +25,17 @@ function getSql() {
       )
     }
     
-    sqlInstance = neon(databaseUrl)
+    try {
+      // Configure Neon for better serverless compatibility
+      const config: NeonConfig = {
+        fetchConnectionCache: true,
+      }
+      
+      sqlInstance = neon(databaseUrl, config)
+    } catch (error) {
+      console.error("Error initializing Neon connection:", error)
+      throw new Error(`Error connecting to database: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
   return sqlInstance
 }

@@ -12,11 +12,22 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching customers:", error)
     const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
+    // Check for specific error types
+    let hint = undefined
+    if (errorMessage.includes("DATABASE_URL")) {
+      hint = "Please set DATABASE_URL in Vercel environment variables"
+    } else if (errorMessage.includes("fetch failed") || errorMessage.includes("ECONNREFUSED") || errorMessage.includes("ETIMEDOUT")) {
+      hint = "Database connection failed. The database might be paused. Please check your Neon dashboard and ensure the database is active."
+    }
+    
     return NextResponse.json(
       { 
         error: "Failed to fetch customers", 
         details: errorMessage,
-        hint: errorMessage.includes("DATABASE_URL") ? "Please set DATABASE_URL in Vercel environment variables" : undefined
+        hint,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
       },
       { status: 500 }
     )
