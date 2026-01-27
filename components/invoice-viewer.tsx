@@ -21,6 +21,8 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
     switch (status) {
       case "paid":
         return "bg-green-100 text-green-800 border-green-200"
+      case "partially_paid":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "sent":
         return "bg-blue-100 text-blue-800 border-blue-200"
       case "overdue":
@@ -31,6 +33,9 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
+
+  const paidAmount = invoice.paidAmount || 0
+  const remainingAmount = invoice.total - paidAmount
 
   const handlePrint = () => {
     window.print()
@@ -83,6 +88,9 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
             <div className="text-right">
               <h1 className="text-2xl font-bold text-gray-800">INVOICE</h1>
               <p className="text-sm font-semibold mt-1 text-muted-foreground">{invoice.invoiceNumber}</p>
+              <Badge className={`mt-2 ${getStatusColor(invoice.status)}`}>
+                {invoice.status === "partially_paid" ? "Partially Paid" : invoice.status.toUpperCase()}
+              </Badge>
             </div>
           </div>
 
@@ -124,8 +132,8 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                   <tr className="bg-gray-100">
                     <th className="text-left p-2 font-bold border-r border-b border-gray-300">NO.</th>
                     <th className="text-left p-2 font-bold border-r border-b border-gray-300">DESCRIPTION</th>
-                    <th className="text-center p-2 font-bold border-r border-b border-gray-300">PCS</th>
                     <th className="text-center p-2 font-bold border-r border-b border-gray-300">Pallet</th>
+                    <th className="text-center p-2 font-bold border-r border-b border-gray-300">PCS</th>
                     <th className="text-center p-2 font-bold border-r border-b border-gray-300">T/PCS</th>
                     <th className="text-right p-2 font-bold border-r border-b border-gray-300">UNIT PRICE</th>
                     <th className="text-right p-2 font-bold border-b border-gray-300">AMOUNT</th>
@@ -138,8 +146,8 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                       <tr key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                         <td className="p-2 text-center border-r border-b border-gray-300">{index + 1}</td>
                         <td className="p-2 border-r border-b border-gray-300">{item.description}</td>
-                        <td className="p-2 text-center border-r border-b border-gray-300">{item.quantity}</td>
                         <td className="p-2 text-center border-r border-b border-gray-300">{item.pallet || 0}</td>
+                        <td className="p-2 text-center border-r border-b border-gray-300">{item.quantity}</td>
                         <td className="p-2 text-center font-medium border-r border-b border-gray-300">{totalQuantity}</td>
                         <td className="p-2 text-right border-r border-b border-gray-300">{formatCurrency(item.price, invoice.currency)}</td>
                         <td className="p-2 text-right font-medium border-b border-gray-300">{formatCurrency(item.total, invoice.currency)}</td>
@@ -155,23 +163,33 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
           <div className="flex justify-end">
             <div className="w-full bg-muted/50 p-4 rounded">
               <div className="space-y-2">
-                <div className="border-t pt-2">
-                  <div className="flex justify-between font-bold">
-                    <span>TOTAL:</span>
-                    {/* Amount in Words */}
-                    {(() => {
-                      const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
-                      return amountLanguage ? (
-                        <div className="border-t pt-2">
-                          <p className="font-medium text-xs" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
-                            {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
-                          </p>
-                        </div>
-                      ) : null
-                    })()}
-                    <span className="text-primary">{formatCurrency(invoice.total, invoice.currency)}</span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">TOTAL:</span>
+                  <span className="font-bold text-primary">{formatCurrency(invoice.total, invoice.currency)}</span>
                 </div>
+                {paidAmount > 0 && (
+                  <>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-sm text-muted-foreground">Paid Amount:</span>
+                      <span className="text-sm font-medium text-green-600">{formatCurrency(paidAmount, invoice.currency)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-sm font-semibold">Remaining Balance:</span>
+                      <span className="text-sm font-bold text-red-600">{formatCurrency(remainingAmount, invoice.currency)}</span>
+                    </div>
+                  </>
+                )}
+                {/* Amount in Words */}
+                {(() => {
+                  const amountLanguage = (invoice as any).amountLanguage || (invoice as any).amount_language
+                  return amountLanguage ? (
+                    <div className="border-t pt-2">
+                      <p className="font-medium text-xs" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
+                        {numberToWords(invoice.total, amountLanguage as "english" | "arabic" | "kurdish", invoice.currency)}
+                      </p>
+                    </div>
+                  ) : null
+                })()}
               </div>
             </div>
           </div>

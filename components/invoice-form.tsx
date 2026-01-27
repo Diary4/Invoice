@@ -68,6 +68,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const [amountLanguage, setAmountLanguage] = useState<"english" | "arabic" | "kurdish">(
     invoice?.amountLanguage || "english"
   )
+  const [paidAmount, setPaidAmount] = useState<number>(invoice?.paidAmount || 0)
 
   const updateItem = (index: number, field: keyof Omit<InvoiceItem, "id">, value: string | number) => {
     const newItems = [...items]
@@ -116,6 +117,16 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       selectedCustomer = customers.find((c) => c.id === customerId) || null
     }
 
+    // Auto-determine status based on paid amount
+    let finalStatus = status
+    if (paidAmount >= total && total > 0) {
+      finalStatus = "paid"
+    } else if (paidAmount > 0 && paidAmount < total) {
+      finalStatus = "partially_paid"
+    } else if (paidAmount === 0 && (status === "paid" || status === "partially_paid")) {
+      finalStatus = "sent"
+    }
+
     const invoiceData = {
       customerId: useManualCustomer ? null : (customerId && customerId !== "__none__" && customerId !== "__manual__" ? customerId : null),
       customer: selectedCustomer || undefined,
@@ -125,7 +136,8 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       })),
       subtotal,
       total,
-      status,
+      paidAmount: paidAmount || 0,
+      status: finalStatus,
       issueDate: new Date(issueDate),
       dueDate: new Date(dueDate),
       notes: notes || undefined,
@@ -340,6 +352,36 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
                 <span>Total:</span>
                 <span>{formatCurrency(total, currency)}</span>
               </div>
+              <div className="flex justify-between border-t pt-2">
+                <Label htmlFor="paidAmount" className="text-sm">Paid Amount:</Label>
+                <Input
+                  id="paidAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  max={total}
+                  value={paidAmount}
+                  onChange={(e) => {
+                    const newPaidAmount = Number.parseFloat(e.target.value) || 0
+                    setPaidAmount(newPaidAmount)
+                    // Auto-update status based on paid amount
+                    if (newPaidAmount >= total) {
+                      setStatus("paid")
+                    } else if (newPaidAmount > 0) {
+                      setStatus("partially_paid")
+                    } else if (status === "paid" || status === "partially_paid") {
+                      setStatus("sent")
+                    }
+                  }}
+                  className="w-32 text-right"
+                />
+              </div>
+              {paidAmount > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Remaining:</span>
+                  <span>{formatCurrency(total - paidAmount, currency)}</span>
+                </div>
+              )}
             </div>
           </div>
 

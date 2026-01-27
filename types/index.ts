@@ -24,8 +24,9 @@ export interface Invoice {
   items: InvoiceItem[]
   subtotal: number
   total: number
+  paidAmount?: number
   currency: "USD" | "IQD"
-  status: "draft" | "sent" | "paid" | "overdue"
+  status: "draft" | "sent" | "paid" | "partially_paid" | "overdue"
   issueDate: Date
   dueDate: Date
   notes?: string

@@ -34,8 +34,9 @@ export interface Invoice {
   items: InvoiceItem[]
   subtotal: number
   total: number
+  paidAmount?: number
   currency: "USD" | "IQD"
-  status: "draft" | "sent" | "paid" | "overdue"
+  status: "draft" | "sent" | "paid" | "partially_paid" | "overdue"
   notes?: string
   amountLanguage?: "english" | "arabic" | "kurdish"
   createdAt: Date
@@ -93,8 +94,9 @@ function transformInvoice(row: any, items?: any[]): Invoice {
       : [],
     subtotal: Number(row.subtotal),
     total: Number(row.total),
+    paidAmount: Number(row.paid_amount || 0),
     currency: row.currency as "USD" | "IQD",
-    status: row.status as "draft" | "sent" | "paid" | "overdue",
+    status: row.status as "draft" | "sent" | "paid" | "partially_paid" | "overdue",
     notes: row.notes || undefined,
     amountLanguage: (row.amount_language || "english") as "english" | "arabic" | "kurdish",
     createdAt: new Date(row.created_at),
@@ -311,6 +313,7 @@ export function useInvoiceSystem() {
           currency: invoiceData.currency,
           subtotal: invoiceData.subtotal,
           total: invoiceData.total,
+          paid_amount: invoiceData.paidAmount || 0,
           status: invoiceData.status,
           notes: invoiceData.notes || null,
           amount_language: invoiceData.amountLanguage || "english",

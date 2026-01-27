@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       currency,
       subtotal,
       total,
+      paid_amount,
       status,
       notes,
       items,
@@ -56,11 +57,11 @@ export async function POST(request: Request) {
         result = await sql`
           INSERT INTO invoices (
             invoice_number, customer_id, issue_date, due_date, currency,
-            subtotal, tax_rate, tax_amount, total, status, notes, amount_language
+            subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, amount_language
           )
           VALUES (
             ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
-            ${subtotal}, 0, 0, ${total}, ${status}, ${notes || null}, ${amount_language || 'english'}
+            ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${amount_language || 'english'}
           )
           RETURNING *
         `
@@ -72,11 +73,11 @@ export async function POST(request: Request) {
           result = await sql`
             INSERT INTO invoices (
               invoice_number, customer_id, issue_date, due_date, currency,
-              subtotal, tax_rate, tax_amount, total, status, notes
+              subtotal, tax_rate, tax_amount, total, paid_amount, status, notes
             )
             VALUES (
               ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
-              ${subtotal}, 0, 0, ${total}, ${status}, ${notes || null}
+              ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}
             )
             RETURNING *
           `
