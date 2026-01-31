@@ -38,6 +38,7 @@ export interface Invoice {
   currency: "USD" | "IQD"
   status: "draft" | "sent" | "paid" | "partially_paid" | "overdue"
   notes?: string
+  branch?: string
   amountLanguage?: "english" | "arabic" | "kurdish"
   createdAt: Date
 }
@@ -98,6 +99,7 @@ function transformInvoice(row: any, items?: any[]): Invoice {
     currency: row.currency as "USD" | "IQD",
     status: row.status as "draft" | "sent" | "paid" | "partially_paid" | "overdue",
     notes: row.notes || undefined,
+    branch: row.branch || undefined,
     amountLanguage: (row.amount_language || "english") as "english" | "arabic" | "kurdish",
     createdAt: new Date(row.created_at),
   }
@@ -316,6 +318,7 @@ export function useInvoiceSystem() {
           paid_amount: invoiceData.paidAmount || 0,
           status: invoiceData.status,
           notes: invoiceData.notes || null,
+          branch: invoiceData.branch || null,
           amount_language: invoiceData.amountLanguage || "english",
           items: invoiceData.items.map((item) => ({
             description: item.description,

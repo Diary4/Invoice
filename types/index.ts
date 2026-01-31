@@ -29,6 +29,7 @@ export interface Invoice {
   status: "draft" | "sent" | "paid" | "partially_paid" | "overdue"
   issueDate: Date
   dueDate: Date
+  branch?: string
   notes?: string
   amountLanguage?: "english" | "arabic" | "kurdish"
   createdAt: Date

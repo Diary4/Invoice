@@ -32,7 +32,12 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const [manualCustomerName, setManualCustomerName] = useState(
     invoice?.customer?.name && !invoice?.customerId ? invoice.customer.name : ""
   )
-  
+  const [manualCustomerPhone, setManualCustomerPhone] = useState(
+    invoice?.customer?.phone && !invoice?.customerId ? invoice.customer.phone : ""
+  )
+  const [manualCustomerEmail, setManualCustomerEmail] = useState(
+    invoice?.customer?.email && !invoice?.customerId ? invoice.customer.email : ""
+  )
   const handleCustomerChange = (value: string) => {
     setCustomerId(value)
     if (value !== "__manual__") {
@@ -69,6 +74,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
     invoice?.amountLanguage || "english"
   )
   const [paidAmount, setPaidAmount] = useState<number>(invoice?.paidAmount || 0)
+  const [branch, setBranch] = useState<string>(invoice?.branch || "")
 
   const updateItem = (index: number, field: keyof Omit<InvoiceItem, "id">, value: string | number) => {
     const newItems = [...items]
@@ -108,8 +114,8 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       selectedCustomer = {
         id: "__manual__",
         name: manualCustomerName.trim(),
-        email: "",
-        phone: "",
+        email: manualCustomerEmail.trim() || "",
+        phone: manualCustomerPhone.trim() || "",
         address: "",
         createdAt: new Date(),
       }
@@ -140,6 +146,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
       status: finalStatus,
       issueDate: new Date(issueDate),
       dueDate: new Date(dueDate),
+      branch: branch.trim() || undefined,
       notes: notes || undefined,
       currency,
       amountLanguage,
@@ -189,11 +196,38 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
                 </SelectContent>
               </Select>
               {useManualCustomer && (
-                <Input
-                  placeholder="Enter customer name"
-                  value={manualCustomerName}
-                  onChange={(e) => setManualCustomerName(e.target.value)}
-                />
+                <div className="space-y-3 mt-2 col-span-2">
+                  <div>
+                    <Label htmlFor="manual-customer-name">Name</Label>
+                    <Input
+                      id="manual-customer-name"
+                      placeholder="Customer name"
+                      value={manualCustomerName}
+                      onChange={(e) => setManualCustomerName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="manual-customer-phone">Phone</Label>
+                      <Input
+                        id="manual-customer-phone"
+                        placeholder="Phone number"
+                        value={manualCustomerPhone}
+                        onChange={(e) => setManualCustomerPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-customer-email">Email</Label>
+                      <Input
+                        id="manual-customer-email"
+                        type="email"
+                        placeholder="Email address"
+                        value={manualCustomerEmail}
+                        onChange={(e) => setManualCustomerEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             <div>
@@ -246,7 +280,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
             </RadioGroup>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="issueDate">Issue Date</Label>
               <Input
@@ -260,6 +294,15 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
             <div>
               <Label htmlFor="dueDate">Due Date</Label>
               <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="branch">Branch</Label>
+              <Input
+                id="branch"
+                placeholder="Branch / location"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              />
             </div>
           </div>
 

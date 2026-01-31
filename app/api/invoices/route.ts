@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       paid_amount,
       status,
       notes,
+      branch,
       items,
       amount_language,
     } = invoiceData
@@ -57,30 +58,49 @@ export async function POST(request: Request) {
         result = await sql`
           INSERT INTO invoices (
             invoice_number, customer_id, issue_date, due_date, currency,
-            subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, amount_language
+            subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, branch, amount_language
           )
           VALUES (
             ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
-            ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${amount_language || 'english'}
+            ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${branch || null}, ${amount_language || 'english'}
           )
           RETURNING *
         `
       } catch (firstError) {
         const firstErrorString = String(firstError).toLowerCase()
-        // If amount_language column doesn't exist, try without it
-        if (firstErrorString.includes("column") && firstErrorString.includes("amount_language")) {
-          console.log("amount_language column not found, inserting without it")
-          result = await sql`
-            INSERT INTO invoices (
-              invoice_number, customer_id, issue_date, due_date, currency,
-              subtotal, tax_rate, tax_amount, total, paid_amount, status, notes
-            )
-            VALUES (
-              ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
-              ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}
-            )
-            RETURNING *
-          `
+        // If branch or amount_language column doesn't exist, try without it
+        if (firstErrorString.includes("column") && (firstErrorString.includes("amount_language") || firstErrorString.includes("branch"))) {
+          console.log("branch or amount_language column not found, inserting without it")
+          try {
+            result = await sql`
+              INSERT INTO invoices (
+                invoice_number, customer_id, issue_date, due_date, currency,
+                subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, amount_language
+              )
+              VALUES (
+                ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
+                ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${amount_language || 'english'}
+              )
+              RETURNING *
+            `
+          } catch (secondError) {
+            const secondErrorString = String(secondError).toLowerCase()
+            if (secondErrorString.includes("column") && secondErrorString.includes("amount_language")) {
+              result = await sql`
+                INSERT INTO invoices (
+                  invoice_number, customer_id, issue_date, due_date, currency,
+                  subtotal, tax_rate, tax_amount, total, paid_amount, status, notes
+                )
+                VALUES (
+                  ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
+                  ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}
+                )
+                RETURNING *
+              `
+            } else {
+              throw secondError
+            }
+          }
         } else {
           throw firstError
         }

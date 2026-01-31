@@ -96,27 +96,37 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
 
           {/* Invoice Details - Inline compact */}
           <div className="flex justify-between gap-4">
-            {invoice.customer && (
-              <div>
-                <div className="flex items-center">
-                  <h3 className="font-semibold text-sm text-primary">Bill To: </h3>
-                  <p className="font-semibold text-sm ml-1">{invoice.customer.name}</p>
+            <div className="space-y-2">
+              {invoice.customer && (
+                <div>
+                  <div className="flex items-center">
+                    <h3 className="font-semibold text-sm text-primary">Bill To: </h3>
+                    <p className="font-semibold text-sm ml-1">{invoice.customer.name}</p>
+                  </div>
+                  {invoice.customer.phone && (
+                    <p className="text-xs text-muted-foreground mt-1">Phone: {invoice.customer.phone}</p>
+                  )}
+                  {invoice.customer.email && (
+                    <p className="text-xs text-muted-foreground mt-0.5">Email: {invoice.customer.email}</p>
+                  )}
                 </div>
-                {invoice.customer.phone && (
-                  <p className="text-xs text-muted-foreground mt-1">Phone: {invoice.customer.phone}</p>
-                )}
-              </div>
-            )}
-            <div className="space-y-2 justify-end">
-              <div className="flex items-center">
+              )}
+            </div>
+            {invoice.branch && (
+                <div className="flex items-center pt-1">
+                  <span className="text-sm font-medium ml-1">{invoice.branch}</span>
+                </div>
+              )}
+            <div className="space-y-2 justify-end text-right">
+              <div className="flex items-center justify-end">
                 <span className="text-xs text-muted-foreground">Issue Date:</span>
                 <span className="text-sm font-medium ml-1">{formatDate(invoice.issueDate)}</span>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center justify-end">
                 <span className="text-xs text-muted-foreground">Due Date:</span>
                 <span className="text-sm font-medium ml-1">{formatDate(invoice.dueDate)}</span>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center justify-end">
                 <span className="text-xs text-muted-foreground">Currency:</span>
                 <span className="text-sm font-medium ml-1">{invoice.currency}</span>
               </div>
