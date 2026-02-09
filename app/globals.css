@@ -99,16 +99,62 @@ body {
   nav {
     display: none !important;
   }
-  
+
   body {
     background: white;
+    margin: 0;
   }
-  
-  .max-w-4xl {
-    max-width: 100%;
+
+  /* Ensure payment voucher fits on a single printed page */
+  .payment-voucher-print {
+    /* Scale down further to keep all content on one page */
+    transform: scale(0.8);
+    transform-origin: top left;
+    padding: 0 !important;
+    margin: 0 auto !important;
   }
-  
-  .space-y-6 > * + * {
-    margin-top: 0;
+
+  /* Make inner card full-width and remove extra margins/padding */
+  .payment-voucher-print .max-w-4xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .payment-voucher-print .space-y-6 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  .payment-voucher-print .space-y-8 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  /* Remove borders to avoid page-looking frame and save space */
+  .payment-voucher-print .border,
+  .payment-voucher-print .border-t,
+  .payment-voucher-print .border-b,
+  .payment-voucher-print .border-l,
+  .payment-voucher-print .border-r {
+    border-width: 0 !important;
+  }
+
+  /* Slightly reduce common paddings to decrease vertical space */
+  .payment-voucher-print .p-4 {
+    padding: 0.5rem !important;
+  }
+
+  .payment-voucher-print .p-6 {
+    padding: 0.75rem !important;
+  }
+
+  .payment-voucher-print .pb-6,
+  .payment-voucher-print .pt-6 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  @page {
+    size: A4;
+    /* Remove browser page border/margins as much as possible */
+    margin: 0;
   }
 }
