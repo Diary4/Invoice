@@ -55,7 +55,7 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
       </div>
 
       {/* Voucher Card */}
-      <Card className="max-w-4xl mx-auto">
+      <Card className="mx-auto print:mx-0 print:w-full print:max-w-none max-w-4xl">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
@@ -175,28 +175,41 @@ export function PaymentVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
           })()}
 
           {/* Amount Section */}
-          <div className="flex justify-end">
-            <div className="w-80 bg-muted/50 p-6 rounded-lg">
-              <div className="space-y-3">
-                <div className="border-b pb-3">
-                  <div className="flex justify-between font-bold text-2xl">
-                    <span>Amount Paid:</span>
-                    <span className="text-primary">{formatCurrency(voucher.amount, voucher.currency)}</span>
-                  </div>
+          <div className="border-t pt-4">
+              <div className="flex justify-between items-center text-lg font-semibold">
+                <div className="flex gap-3 items-center">
+                  <span>Amount Paid:</span>
+                  <span className="text-primary whitespace-nowrap">
+                    {formatCurrency(voucher.amount, voucher.currency)}
+                  </span>
                 </div>
+
                 {(() => {
-                  const amountLanguage = (voucher as any).amountLanguage || (voucher as any).amount_language
+                  const amountLanguage =
+                    (voucher as any).amountLanguage ||
+                    (voucher as any).amount_language
+
                   return amountLanguage ? (
-                    <div className="pt-3">
-                      <p className="font-medium" dir={amountLanguage === "arabic" || amountLanguage === "kurdish" ? "rtl" : "ltr"}>
-                        {numberToWords(voucher.amount, amountLanguage as "english" | "arabic" | "kurdish", voucher.currency)}
-                      </p>
-                    </div>
+                    <span
+                      className="text-sm font-normal text-muted-foreground whitespace-nowrap"
+                      dir={
+                        amountLanguage === "arabic" ||
+                        amountLanguage === "kurdish"
+                          ? "rtl"
+                          : "ltr"
+                      }
+                    >
+                      {numberToWords(
+                        voucher.amount,
+                        amountLanguage as "english" | "arabic" | "kurdish",
+                        voucher.currency
+                      )}
+                    </span>
                   ) : null
                 })()}
               </div>
             </div>
-          </div>
+
 
           {/* Notes */}
           {voucher.notes && (
