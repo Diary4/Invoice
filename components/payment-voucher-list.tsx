@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Eye, Edit, Trash2, Plus, Download } from "lucide-react"
 import { formatCurrency } from "../lib/currency"
 import type { PaymentVoucher } from "../types"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface PaymentVoucherListProps {
   vouchers: PaymentVoucher[]
@@ -37,11 +39,81 @@ export function PaymentVoucherList({
     }
   }
 
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+  
+    doc.setFontSize(14)
+    doc.text("Payment Voucher List", 14, 15)
+  
+    const tableData = vouchers.map((voucher) => [
+      voucher.voucherNumber,
+      voucher.customer?.name || "No customer",
+      voucher.status,
+      new Date(voucher.paymentDate).toLocaleDateString(),
+      voucher.paymentMethod || "",
+      formatCurrency(voucher.amount, voucher.currency),
+    ])
+  
+    autoTable(doc, {
+      startY: 20,
+      head: [["Number", "Customer", "Status", "Date", "Method", "Amount"]],
+      body: tableData,
+    })
+  
+    doc.save("payment-vouchers.pdf")
+  }
+
+  const exportToCSV = () => {
+    const headers = [
+      "Voucher Number",
+      "Customer",
+      "Status",
+      "Date",
+      "Payment Method",
+      "Amount",
+      "Currency",
+      "Reference Number",
+    ]
+  
+    const rows = vouchers.map((voucher) => [
+      voucher.voucherNumber,
+      voucher.customer?.name || "No customer",
+      voucher.status,
+      new Date(voucher.paymentDate).toLocaleDateString(),
+      voucher.paymentMethod || "",
+      voucher.amount,
+      voucher.currency,
+      voucher.referenceNumber || "",
+    ])
+  
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers, ...rows].map((e) => e.join(",")).join("\n")
+  
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", "payment-vouchers.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+  
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Payment Vouchers ({vouchers.length})</CardTitle>
+      <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={exportToCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+
+          <Button size="sm" variant="outline" onClick={exportToPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
+
           {onCreateVoucher && (
             <Button onClick={onCreateVoucher} size="sm">
               <Plus className="w-4 h-4 mr-2" />
@@ -49,6 +121,7 @@ export function PaymentVoucherList({
             </Button>
           )}
         </div>
+
       </CardHeader>
       <CardContent>
         {vouchers.length === 0 ? (

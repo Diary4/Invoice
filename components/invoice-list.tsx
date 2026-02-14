@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Eye, Edit, Trash2, Plus, Download } from "lucide-react"
 import { formatCurrency } from "../lib/currency"
 import type { Invoice } from "../types"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface InvoiceListProps {
   invoices: Invoice[]
@@ -37,11 +39,81 @@ export function InvoiceList({
     }
   }
 
+  // ✅ Export to CSV
+const exportToCSV = () => {
+  const headers = [
+    "Invoice Number",
+    "Customer",
+    "Status",
+    "Created At",
+    "Due Date",
+    "Total",
+    "Currency",
+    "Items Count",
+  ]
+
+  const rows = invoices.map((invoice) => [
+    invoice.invoiceNumber,
+    invoice.customer?.name || "No customer",
+    invoice.status,
+    new Date(invoice.createdAt).toLocaleDateString(),
+    invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "",
+    invoice.total,
+    invoice.currency,
+    invoice.items.length,
+  ])
+
+  const csvContent =
+    "data:text/csv;charset=utf-8," +
+    [headers, ...rows].map((e) => e.join(",")).join("\n")
+
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement("a")
+  link.setAttribute("href", encodedUri)
+  link.setAttribute("download", "invoices.csv")
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+// ✅ Export to PDF
+const exportToPDF = () => {
+  const doc = new jsPDF()
+
+  doc.text("Invoice List", 14, 15)
+
+  const tableData = invoices.map((invoice) => [
+    invoice.invoiceNumber,
+    invoice.customer?.name || "No customer",
+    invoice.status,
+    new Date(invoice.createdAt).toLocaleDateString(),
+    invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "",
+    formatCurrency(invoice.total, invoice.currency),
+  ])
+
+  autoTable(doc, {
+    startY: 20,
+    head: [["Number", "Customer", "Status", "Created", "Due", "Total"]],
+    body: tableData,
+  })
+
+  doc.save("invoices.pdf")
+}
+
+
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Invoices ({invoices.length})</CardTitle>
+          <Button size="sm" variant="outline" onClick={exportToCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+
+          <Button size="sm" variant="outline" onClick={exportToPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
           <Button onClick={() => onViewInvoice && onViewInvoice("")} size="sm">
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
