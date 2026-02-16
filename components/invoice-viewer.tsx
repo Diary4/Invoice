@@ -97,16 +97,16 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
           {/* Invoice Details - Inline compact */}
           <div className="flex justify-between gap-4">
             <div className="space-y-2">
-              {invoice.customer && (
+              {invoice.customer && invoice.customer.name && (
                 <div>
                   <div className="flex items-center">
                     <h3 className="font-semibold text-sm text-primary">Bill To: </h3>
                     <p className="font-semibold text-sm ml-1">{invoice.customer.name}</p>
                   </div>
-                  {invoice.customer.phone && (
+                  {invoice.customer.phone && invoice.customer.phone.trim() && (
                     <p className="text-xs text-muted-foreground mt-1">Phone: {invoice.customer.phone}</p>
                   )}
-                  {invoice.customer.email && (
+                  {invoice.customer.email && invoice.customer.email.trim() && (
                     <p className="text-xs text-muted-foreground mt-0.5">Email: {invoice.customer.email}</p>
                   )}
                 </div>
@@ -145,7 +145,7 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                     <th className="text-center p-2 font-bold border-r border-b border-gray-300">Pallet</th>
                     <th className="text-center p-2 font-bold border-r border-b border-gray-300">PCS</th>
                     <th className="text-center p-2 font-bold border-r border-b border-gray-300">T/PCS</th>
-                    <th className="text-right p-2 font-bold border-r border-b border-gray-300">UNIT PRICE</th>
+                    <th className="text-right p-2 font-bold border-r border-b border-gray-300">UP</th>
                     <th className="text-right p-2 font-bold border-b border-gray-300">AMOUNT</th>
                   </tr>
                 </thead>
@@ -159,8 +159,8 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                         <td className="p-2 text-center border-r border-b border-gray-300">{item.pallet || 0}</td>
                         <td className="p-2 text-center border-r border-b border-gray-300">{item.quantity}</td>
                         <td className="p-2 text-center font-medium border-r border-b border-gray-300">{totalQuantity}</td>
-                        <td className="p-2 text-right border-r border-b border-gray-300">{formatCurrency(item.price, invoice.currency)}</td>
-                        <td className="p-2 text-right font-medium border-b border-gray-300">{formatCurrency(item.total, invoice.currency)}</td>
+                        <td className="p-2 text-center border-r border-b border-gray-300">{item.price}</td>
+                        <td className="p-2 text-center font-medium border-b border-gray-300">{item.total}</td>
                       </tr>
                     )
                   })}

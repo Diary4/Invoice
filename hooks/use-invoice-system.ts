@@ -301,9 +301,11 @@ export function useInvoiceSystem() {
   const addInvoice = useCallback(
     async (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
       try {
-        // Generate invoice number - use date + sequence to ensure uniqueness
+        // Generate invoice number - use month/day + sequence to ensure uniqueness (without year)
         const now = new Date()
-        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '')
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const dateStr = `${month}${day}` // MM-DD format without year
         const timeStr = now.getTime().toString().slice(-6)
         const invoiceNumber = `INV-${dateStr}-${timeStr}`
         
@@ -363,6 +365,10 @@ export function useInvoiceSystem() {
             if (invoiceRes.ok) {
               const invoiceWithItems = await invoiceRes.json()
               const transformed = transformInvoice(invoiceWithItems, invoiceWithItems.items || [])
+              // Preserve manual customer data if it exists in invoiceData
+              if (invoiceData.customer && !transformed.customerId && invoiceData.customer.id === "__manual__") {
+                transformed.customer = invoiceData.customer
+              }
               setInvoices((prev) => [...prev, transformed])
               return transformed
             }
@@ -371,6 +377,10 @@ export function useInvoiceSystem() {
           }
           // Fallback if items fetch fails
           const transformed = transformInvoice(newInvoice, [])
+          // Preserve manual customer data if it exists in invoiceData
+          if (invoiceData.customer && !transformed.customerId && invoiceData.customer.id === "__manual__") {
+            transformed.customer = invoiceData.customer
+          }
           setInvoices((prev) => [...prev, transformed])
           return transformed
         } else {

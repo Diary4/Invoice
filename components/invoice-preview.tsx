@@ -123,7 +123,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                   <th className="text-right py-2">Qty/Pallet</th>
                   <th className="text-right py-2">Pallet</th>
                   <th className="text-right py-2">Total Qty</th>
-                  <th className="text-right py-2">Unit Price</th>
+                  <th className="text-right py-2">UP</th>
                   <th className="text-right py-2">Total</th>
                 </tr>
               </thead>

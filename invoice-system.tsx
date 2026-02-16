@@ -99,8 +99,10 @@ export default function InvoiceSystem() {
 
   const handleCreateInvoice = async (invoiceData: any) => {
     try {
-      await addInvoice(invoiceData)
-      setCurrentView("invoices")
+      const newInvoice = await addInvoice(invoiceData)
+      // Navigate to preview of newly created invoice
+      setSelectedInvoiceId(newInvoice.id)
+      setCurrentView("view-invoice")
     } catch (error) {
       console.error("Failed to create invoice:", error)
       // You could show a toast notification here
