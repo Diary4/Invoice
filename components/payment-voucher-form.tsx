@@ -28,6 +28,12 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
   const [manualCustomerName, setManualCustomerName] = useState(
     voucher?.customer?.name && !voucher?.customerId ? voucher.customer.name : ""
   )
+  const [manualCustomerPhone, setManualCustomerPhone] = useState(
+    voucher?.customer?.phone && !voucher?.customerId ? voucher.customer.phone : ""
+  )
+  const [manualCustomerEmail, setManualCustomerEmail] = useState(
+    voucher?.customer?.email && !voucher?.customerId ? voucher.customer.email : ""
+  )
   
   const handleCustomerChange = (value: string) => {
     setCustomerId(value)
@@ -35,6 +41,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       setUseManualCustomer(false)
     }
   }
+  
   const [paymentDate, setPaymentDate] = useState(
     voucher?.paymentDate ? new Date(voucher.paymentDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
   )
@@ -47,17 +54,14 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
     // Handle descriptions from database (could be JSON string or array)
     if (voucher?.descriptions) {
       if (Array.isArray(voucher.descriptions)) {
-        // Check if it's already DescriptionItem[] or string[]
         if (voucher.descriptions.length > 0) {
           if (typeof voucher.descriptions[0] === 'object' && 'description' in voucher.descriptions[0]) {
             return voucher.descriptions as DescriptionItem[]
           } else {
-            // Convert string[] to DescriptionItem[]
             return (voucher.descriptions as string[]).map(desc => ({ description: desc, amount: 0 }))
           }
         }
       }
-      // If it's a string, try to parse it
       try {
         const parsed = typeof voucher.descriptions === 'string' ? JSON.parse(voucher.descriptions) : voucher.descriptions
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -71,31 +75,45 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
         // Ignore parse errors
       }
     }
-    // Fallback to single description
-    return voucher?.description ? [{ description: voucher.description, amount: 0 }] : [{ description: "", amount: "" }]
+    return voucher?.description ? [{ description: voucher.description, amount: 0 }] : [{ description: "", amount: 0 }]
   })
   const [status, setStatus] = useState<PaymentVoucher["status"]>(voucher?.status || "draft")
   const [notes, setNotes] = useState(voucher?.notes || "")
-  const [name, setName] = useState(voucher?.name || voucher?.name || "")
+  const [name, setName] = useState(voucher?.name || "")
   const [accountantName, setAccountantName] = useState(voucher?.accountantName || voucher?.accountant_name || "")
 
   // Calculate total amount from descriptions
   const totalAmount = descriptions.reduce((sum, item) => {
-    const itemAmount = typeof item.amount === 'number' ? item.amount : (item.amount === '' || item.amount === null || item.amount === undefined ? 0 : Number.parseFloat(String(item.amount)) || 0)
+    const itemAmount = typeof item.amount === 'number' ? item.amount : Number(item.amount) || 0
     return sum + itemAmount
   }, 0)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const addDescription = () => {
+    setDescriptions([...descriptions, { description: "", amount: 0 }])
+  }
+
+  const removeDescription = (index: number) => {
+    if (descriptions.length > 1) {
+      setDescriptions(descriptions.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateDescription = (index: number, field: keyof DescriptionItem, value: string | number) => {
+    const newDescriptions = [...descriptions]
+    newDescriptions[index] = { ...newDescriptions[index], [field]: value }
+    setDescriptions(newDescriptions)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     let selectedCustomer = null
     if (useManualCustomer && manualCustomerName.trim()) {
-      // Create a temporary customer object for manual entry
       selectedCustomer = {
         id: "__manual__",
         name: manualCustomerName.trim(),
-        email: "",
-        phone: "",
+        email: manualCustomerEmail.trim() || "",
+        phone: manualCustomerPhone.trim() || "",
         address: "",
         createdAt: new Date(),
       }
@@ -103,7 +121,6 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       selectedCustomer = customers.find((c) => c.id === customerId) || null
     }
 
-    // Auto-generate reference number
     const referenceNumber = voucher?.voucherNumber 
       ? `REF-${voucher.voucherNumber}` 
       : `REF-${Date.now()}`
@@ -124,7 +141,7 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
       amountLanguage: amountLanguage,
     }
 
-    onSave(voucherData)
+    await onSave(voucherData)
   }
 
   return (
@@ -163,11 +180,38 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
                 </SelectContent>
               </Select>
               {useManualCustomer && (
-                <Input
-                  placeholder="Enter customer name"
-                  value={manualCustomerName}
-                  onChange={(e) => setManualCustomerName(e.target.value)}
-                />
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <Label htmlFor="manual-customer-name">Name</Label>
+                    <Input
+                      id="manual-customer-name"
+                      placeholder="Customer name"
+                      value={manualCustomerName}
+                      onChange={(e) => setManualCustomerName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="manual-customer-phone">Phone</Label>
+                      <Input
+                        id="manual-customer-phone"
+                        placeholder="Phone number"
+                        value={manualCustomerPhone}
+                        onChange={(e) => setManualCustomerPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-customer-email">Email</Label>
+                      <Input
+                        id="manual-customer-email"
+                        type="email"
+                        placeholder="Email address"
+                        value={manualCustomerEmail}
+                        onChange={(e) => setManualCustomerEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             <div>
@@ -215,16 +259,16 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
               className="flex gap-6 mt-2"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="english" id="english" />
-                <Label htmlFor="english" className="cursor-pointer">English</Label>
+                <RadioGroupItem value="english" id="voucher-english" />
+                <Label htmlFor="voucher-english" className="cursor-pointer">English</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="arabic" id="arabic" />
-                <Label htmlFor="arabic" className="cursor-pointer">Arabic</Label>
+                <RadioGroupItem value="arabic" id="voucher-arabic" />
+                <Label htmlFor="voucher-arabic" className="cursor-pointer">Arabic</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="kurdish" id="kurdish" />
-                <Label htmlFor="kurdish" className="cursor-pointer">Kurdish</Label>
+                <RadioGroupItem value="kurdish" id="voucher-kurdish" />
+                <Label htmlFor="voucher-kurdish" className="cursor-pointer">Kurdish</Label>
               </div>
             </RadioGroup>
           </div>
@@ -245,58 +289,78 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label htmlFor="name">Prepared By</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name of person preparing"
+              />
+            </div>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-4">
-              <Label>Descriptions</Label>
-              <Button type="button" onClick={() => setDescriptions([...descriptions, { description: "", amount: "" }])} size="sm">
+              <Label>Payment Descriptions</Label>
+              <Button type="button" onClick={addDescription} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Description
               </Button>
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-4">
               {descriptions.map((item, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <Input
-                    value={item.description}
-                    onChange={(e) => {
-                      const newDescriptions = [...descriptions]
-                      newDescriptions[index] = { ...newDescriptions[index], description: e.target.value }
-                      setDescriptions(newDescriptions)
-                    }}
-                    placeholder={`Description ${index + 1}...`}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.amount === "" ? "" : item.amount}
-                    onChange={(e) => {
-                      const newDescriptions = [...descriptions]
-                      const value = e.target.value === "" ? "" : (Number.parseFloat(e.target.value) || 0)
-                      newDescriptions[index] = { ...newDescriptions[index], amount: value }
-                      setDescriptions(newDescriptions)
-                    }}
-                    placeholder="Amount"
-                    className="w-32"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (descriptions.length > 1) {
-                        setDescriptions(descriptions.filter((_, i) => i !== index))
-                      }
-                    }}
-                    disabled={descriptions.length === 1}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-7">
+                    <Label>Description</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) => updateDescription(index, "description", e.target.value)}
+                      placeholder={`Description ${index + 1}`}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.amount}
+                      onChange={(e) => {
+                        const value = e.target.value === "" ? 0 : Number.parseFloat(e.target.value) || 0
+                        updateDescription(index, "amount", value)
+                      }}
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeDescription(index)}
+                      disabled={descriptions.length === 1}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="accountantName">Accountant Name</Label>
+              <Input
+                id="accountantName"
+                value={accountantName}
+                onChange={(e) => setAccountantName(e.target.value)}
+                placeholder="Accountant name"
+              />
             </div>
           </div>
 
@@ -308,27 +372,6 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional notes..."
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="accountantName">Accountant Name</Label>
-              <Input
-                id="accountantName"
-                value={accountantName}
-                onChange={(e) => setAccountantName(e.target.value)}
-                placeholder="Accountant name"
-              />
-            </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">
@@ -349,4 +392,3 @@ export function PaymentVoucherForm({ customers, voucher, onSave, onCancel }: Pay
     </Card>
   )
 }
-

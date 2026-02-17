@@ -485,6 +485,10 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformPaymentVoucher(newVoucher)
+          // Preserve manual customer data if it exists in voucherData
+          if (voucherData.customer && !transformed.customerId && voucherData.customer.id === "__manual__") {
+            transformed.customer = voucherData.customer
+          }
           setPaymentVouchers((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -556,6 +560,10 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformReceiptVoucher(newVoucher)
+          // Preserve manual customer data if it exists in voucherData
+          if (voucherData.customer && !transformed.customerId && voucherData.customer.id === "__manual__") {
+            transformed.customer = voucherData.customer
+          }
           setReceiptVouchers((prev) => [...prev, transformed])
           return transformed
         } else {

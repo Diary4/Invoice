@@ -114,7 +114,8 @@ export default function InvoiceSystem() {
     if (selectedInvoiceId) {
       try {
         await updateInvoice(selectedInvoiceId, invoiceData)
-        setCurrentView("invoices")
+        // After updating, stay on the invoice preview
+        setCurrentView("view-invoice")
       } catch (error) {
         console.error("Failed to update invoice:", error)
         alert(error instanceof Error ? error.message : "Failed to update invoice. Please try again.")
@@ -138,15 +139,27 @@ export default function InvoiceSystem() {
     setCurrentView("edit-payment-voucher")
   }
 
-  const handleCreatePaymentVoucher = (voucherData: any) => {
-    addPaymentVoucher(voucherData)
-    setCurrentView("payment-vouchers")
+  const handleCreatePaymentVoucher = async (voucherData: any) => {
+    try {
+      const newVoucher = await addPaymentVoucher(voucherData)
+      // Navigate to preview of newly created payment voucher
+      setSelectedPaymentVoucherId(newVoucher.id)
+      setCurrentView("view-payment-voucher")
+    } catch (error) {
+      console.error("Failed to create payment voucher:", error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to create payment voucher. Please try again.",
+      )
+    }
   }
 
   const handleUpdatePaymentVoucher = (voucherData: any) => {
     if (selectedPaymentVoucherId) {
       updatePaymentVoucher(selectedPaymentVoucherId, voucherData)
-      setCurrentView("payment-vouchers")
+      // After updating, show the payment voucher preview
+      setCurrentView("view-payment-voucher")
     }
   }
 
@@ -165,15 +178,27 @@ export default function InvoiceSystem() {
     setCurrentView("edit-receipt-voucher")
   }
 
-  const handleCreateReceiptVoucher = (voucherData: any) => {
-    addReceiptVoucher(voucherData)
-    setCurrentView("receipt-vouchers")
+  const handleCreateReceiptVoucher = async (voucherData: any) => {
+    try {
+      const newVoucher = await addReceiptVoucher(voucherData)
+      // Navigate to preview of newly created receipt voucher
+      setSelectedReceiptVoucherId(newVoucher.id)
+      setCurrentView("view-receipt-voucher")
+    } catch (error) {
+      console.error("Failed to create receipt voucher:", error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to create receipt voucher. Please try again.",
+      )
+    }
   }
 
   const handleUpdateReceiptVoucher = (voucherData: any) => {
     if (selectedReceiptVoucherId) {
       updateReceiptVoucher(selectedReceiptVoucherId, voucherData)
-      setCurrentView("receipt-vouchers")
+      // After updating, show the receipt voucher preview
+      setCurrentView("view-receipt-voucher")
     }
   }
 

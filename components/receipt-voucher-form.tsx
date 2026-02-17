@@ -28,6 +28,12 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
   const [manualCustomerName, setManualCustomerName] = useState(
     voucher?.customer?.name && !voucher?.customerId ? voucher.customer.name : ""
   )
+  const [manualCustomerPhone, setManualCustomerPhone] = useState(
+    voucher?.customer?.phone && !voucher?.customerId ? voucher.customer.phone : ""
+  )
+  const [manualCustomerEmail, setManualCustomerEmail] = useState(
+    voucher?.customer?.email && !voucher?.customerId ? voucher.customer.email : ""
+  )
   
   const handleCustomerChange = (value: string) => {
     setCustomerId(value)
@@ -94,8 +100,8 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
       selectedCustomer = {
         id: "__manual__",
         name: manualCustomerName.trim(),
-        email: "",
-        phone: "",
+        email: manualCustomerEmail.trim() || "",
+        phone: manualCustomerPhone.trim() || "",
         address: "",
         createdAt: new Date(),
       }
@@ -163,11 +169,38 @@ export function ReceiptVoucherForm({ customers, voucher, onSave, onCancel }: Rec
                 </SelectContent>
               </Select>
               {useManualCustomer && (
-                <Input
-                  placeholder="Enter customer name"
-                  value={manualCustomerName}
-                  onChange={(e) => setManualCustomerName(e.target.value)}
-                />
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <Label htmlFor="receipt-manual-customer-name">Name</Label>
+                    <Input
+                      id="receipt-manual-customer-name"
+                      placeholder="Customer name"
+                      value={manualCustomerName}
+                      onChange={(e) => setManualCustomerName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="receipt-manual-customer-phone">Phone</Label>
+                      <Input
+                        id="receipt-manual-customer-phone"
+                        placeholder="Phone number"
+                        value={manualCustomerPhone}
+                        onChange={(e) => setManualCustomerPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="receipt-manual-customer-email">Email</Label>
+                      <Input
+                        id="receipt-manual-customer-email"
+                        type="email"
+                        placeholder="Email address"
+                        value={manualCustomerEmail}
+                        onChange={(e) => setManualCustomerEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             <div>
