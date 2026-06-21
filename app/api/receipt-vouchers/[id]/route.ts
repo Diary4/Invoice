@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { resolveCustomerId } from "@/lib/resolve-customer"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -31,6 +32,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const voucherData = await request.json()
     const {
       customer_id,
+      customer_name,
+      customer_email,
+      customer_phone,
       receipt_date,
       currency,
       amount,
@@ -52,10 +56,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         ? [description] 
         : null
 
+    const resolvedCustomerId = await resolveCustomerId({
+      customer_id: customer_id || null,
+      customer_name,
+      customer_email,
+      customer_phone,
+    })
+
     const [voucher] = await sql`
       UPDATE receipt_vouchers
       SET 
-        customer_id = ${customer_id || null},
+        customer_id = ${resolvedCustomerId},
         receipt_date = ${receipt_date},
         currency = ${currency},
         amount = ${amount},
@@ -77,7 +88,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Receipt voucher not found" }, { status: 404 })
     }
 
-    return NextResponse.json(voucher)
+    const [voucherWithCustomer] = await sql`
+      SELECT 
+        rv.*,
+        c.name as customer_name,
+        c.email as customer_email,
+        c.phone as customer_phone,
+        c.address as customer_address
+      FROM receipt_vouchers rv
+      LEFT JOIN customers c ON rv.customer_id = c.id
+      WHERE rv.id = ${voucher.id}
+    `
+
+    return NextResponse.json(voucherWithCustomer)
   } catch (error) {
     console.error("Error updating receipt voucher:", error)
     return NextResponse.json({ error: "Failed to update receipt voucher" }, { status: 500 })

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { resolveCustomerId } from "@/lib/resolve-customer"
 
 export async function GET() {
   try {
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
     const {
       invoice_number,
       customer_id,
+      customer_name,
+      customer_email,
+      customer_phone,
       issue_date,
       due_date,
       currency,
@@ -49,6 +53,13 @@ export async function POST(request: Request) {
       )
     }
 
+    const resolvedCustomerId = await resolveCustomerId({
+      customer_id: customer_id || null,
+      customer_name,
+      customer_email,
+      customer_phone,
+    })
+
     // Insert invoice
     let invoice
     try {
@@ -61,7 +72,7 @@ export async function POST(request: Request) {
             subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, branch, amount_language
           )
           VALUES (
-            ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
+            ${invoice_number}, ${resolvedCustomerId}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
             ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${branch || null}, ${amount_language || 'english'}
           )
           RETURNING *
@@ -78,7 +89,7 @@ export async function POST(request: Request) {
                 subtotal, tax_rate, tax_amount, total, paid_amount, status, notes, amount_language
               )
               VALUES (
-                ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
+                ${invoice_number}, ${resolvedCustomerId}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
                 ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}, ${amount_language || 'english'}
               )
               RETURNING *
@@ -92,7 +103,7 @@ export async function POST(request: Request) {
                   subtotal, tax_rate, tax_amount, total, paid_amount, status, notes
                 )
                 VALUES (
-                  ${invoice_number}, ${customer_id || null}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
+                  ${invoice_number}, ${resolvedCustomerId}, ${issue_date}, ${due_date}, ${currency || 'IQD'},
                   ${subtotal}, 0, 0, ${total}, ${paid_amount || 0}, ${status}, ${notes || null}
                 )
                 RETURNING *

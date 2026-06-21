@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import jsPDF from "jspdf"
 import { formatCurrencyForPDF } from "../lib/currency"
 import { numberToWords } from "../lib/number-to-words"
+import { ensureCustomerInDatabase } from "../lib/client-customer"
 import type { PaymentVoucher, ReceiptVoucher } from "../types"
 
 export interface Customer {
@@ -301,6 +302,29 @@ export function useInvoiceSystem() {
   const addInvoice = useCallback(
     async (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
       try {
+        const hadExistingCustomerId = Boolean(invoiceData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: invoiceData.customerId,
+          customer: invoiceData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && invoiceData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: invoiceData.customer.name,
+            email: invoiceData.customer.email || "",
+            phone: invoiceData.customer.phone,
+            address: invoiceData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
         // Generate invoice number - use month/day + sequence to ensure uniqueness (without year)
         const now = new Date()
         const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -311,7 +335,7 @@ export function useInvoiceSystem() {
         
         const requestBody = {
           invoice_number: invoiceNumber,
-          customer_id: invoiceData.customerId ? Number.parseInt(invoiceData.customerId, 10) : null,
+          customer_id: customerId,
           issue_date: invoiceData.issueDate.toISOString().split("T")[0],
           due_date: invoiceData.dueDate.toISOString().split("T")[0],
           currency: invoiceData.currency,
@@ -365,10 +389,6 @@ export function useInvoiceSystem() {
             if (invoiceRes.ok) {
               const invoiceWithItems = await invoiceRes.json()
               const transformed = transformInvoice(invoiceWithItems, invoiceWithItems.items || [])
-              // Preserve manual customer data if it exists in invoiceData
-              if (invoiceData.customer && !transformed.customerId && invoiceData.customer.id === "__manual__") {
-                transformed.customer = invoiceData.customer
-              }
               setInvoices((prev) => [...prev, transformed])
               return transformed
             }
@@ -377,10 +397,6 @@ export function useInvoiceSystem() {
           }
           // Fallback if items fetch fails
           const transformed = transformInvoice(newInvoice, [])
-          // Preserve manual customer data if it exists in invoiceData
-          if (invoiceData.customer && !transformed.customerId && invoiceData.customer.id === "__manual__") {
-            transformed.customer = invoiceData.customer
-          }
           setInvoices((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -433,13 +449,82 @@ export function useInvoiceSystem() {
         }
       }
     },
-    [invoices.length],
+    [],
   )
 
-  const updateInvoice = useCallback(async (id: string, updates: Partial<Invoice>) => {
-    // Note: Update API endpoint would need to be created
-    setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...updates } : invoice)))
-  }, [])
+  const updateInvoice = useCallback(
+    async (id: string, invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
+      try {
+        const hadExistingCustomerId = Boolean(invoiceData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: invoiceData.customerId,
+          customer: invoiceData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && invoiceData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: invoiceData.customer.name,
+            email: invoiceData.customer.email || "",
+            phone: invoiceData.customer.phone,
+            address: invoiceData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
+        const response = await fetch(`/api/invoices/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_id: customerId,
+            issue_date: invoiceData.issueDate.toISOString().split("T")[0],
+            due_date: invoiceData.dueDate.toISOString().split("T")[0],
+            currency: invoiceData.currency,
+            subtotal: invoiceData.subtotal,
+            total: invoiceData.total,
+            paid_amount: invoiceData.paidAmount || 0,
+            status: invoiceData.status,
+            notes: invoiceData.notes || null,
+            branch: invoiceData.branch || null,
+            amount_language: invoiceData.amountLanguage || "english",
+            items: invoiceData.items.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.price,
+              total: item.total,
+              pallet: item.pallet || 0,
+            })),
+          }),
+        })
+
+        if (response.ok) {
+          const updatedInvoice = await response.json()
+          const transformed = transformInvoice(updatedInvoice, updatedInvoice.items || [])
+          setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? transformed : invoice)))
+          return transformed
+        }
+
+        let errorMessage = "Failed to update invoice"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage)
+      } catch (error) {
+        console.error("Error updating invoice:", error)
+        throw error
+      }
+    },
+    [],
+  )
 
   const deleteInvoice = useCallback(async (id: string) => {
     // Note: Delete API endpoint would need to be created
@@ -459,14 +544,34 @@ export function useInvoiceSystem() {
   const addPaymentVoucher = useCallback(
     async (voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const voucherNumber = `PV-${String(paymentVouchers.length + 1).padStart(4, "0")}`
-        
+        const hadExistingCustomerId = Boolean(voucherData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: voucherData.customerId,
+          customer: voucherData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: voucherData.customer.name,
+            email: voucherData.customer.email || "",
+            phone: voucherData.customer.phone,
+            address: voucherData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
         const response = await fetch("/api/payment-vouchers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            voucher_number: voucherNumber,
-            customer_id: voucherData.customerId ? Number.parseInt(voucherData.customerId, 10) : null,
+            customer_id: customerId,
             payment_date: voucherData.paymentDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -485,10 +590,6 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformPaymentVoucher(newVoucher)
-          // Preserve manual customer data if it exists in voucherData
-          if (voucherData.customer && !transformed.customerId && voucherData.customer.id === "__manual__") {
-            transformed.customer = voucherData.customer
-          }
           setPaymentVouchers((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -508,13 +609,77 @@ export function useInvoiceSystem() {
         throw error
       }
     },
-    [paymentVouchers.length],
+    [],
   )
 
-  const updatePaymentVoucher = useCallback(async (id: string, updates: Partial<PaymentVoucher>) => {
-    // Note: Update API endpoint would need to be created
-    setPaymentVouchers((prev) => prev.map((voucher) => (voucher.id === id ? { ...voucher, ...updates } : voucher)))
-  }, [])
+  const updatePaymentVoucher = useCallback(
+    async (id: string, voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
+      try {
+        const hadExistingCustomerId = Boolean(voucherData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: voucherData.customerId,
+          customer: voucherData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: voucherData.customer.name,
+            email: voucherData.customer.email || "",
+            phone: voucherData.customer.phone,
+            address: voucherData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
+        const response = await fetch(`/api/payment-vouchers/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_id: customerId,
+            payment_date: voucherData.paymentDate.toISOString().split("T")[0],
+            currency: voucherData.currency,
+            amount: voucherData.amount,
+            payment_method: voucherData.paymentMethod || null,
+            reference_number: voucherData.referenceNumber || null,
+            description: voucherData.description || null,
+            descriptions: voucherData.descriptions || null,
+            status: voucherData.status,
+            notes: voucherData.notes || null,
+            name: voucherData.name || null,
+            accountant_name: voucherData.accountantName || null,
+            amount_language: voucherData.amountLanguage || "english",
+          }),
+        })
+
+        if (response.ok) {
+          const updatedVoucher = await response.json()
+          const transformed = transformPaymentVoucher(updatedVoucher)
+          setPaymentVouchers((prev) => prev.map((voucher) => (voucher.id === id ? transformed : voucher)))
+          return transformed
+        }
+
+        let errorMessage = "Failed to update payment voucher"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage)
+      } catch (error) {
+        console.error("Error updating payment voucher:", error)
+        throw error
+      }
+    },
+    [],
+  )
 
   const deletePaymentVoucher = useCallback(async (id: string) => {
     // Note: Delete API endpoint would need to be created
@@ -534,14 +699,34 @@ export function useInvoiceSystem() {
   const addReceiptVoucher = useCallback(
     async (voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const voucherNumber = `RV-${String(receiptVouchers.length + 1).padStart(4, "0")}`
-        
+        const hadExistingCustomerId = Boolean(voucherData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: voucherData.customerId,
+          customer: voucherData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: voucherData.customer.name,
+            email: voucherData.customer.email || "",
+            phone: voucherData.customer.phone,
+            address: voucherData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
         const response = await fetch("/api/receipt-vouchers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            voucher_number: voucherNumber,
-            customer_id: voucherData.customerId ? Number.parseInt(voucherData.customerId, 10) : null,
+            customer_id: customerId,
             receipt_date: voucherData.receiptDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -560,10 +745,6 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformReceiptVoucher(newVoucher)
-          // Preserve manual customer data if it exists in voucherData
-          if (voucherData.customer && !transformed.customerId && voucherData.customer.id === "__manual__") {
-            transformed.customer = voucherData.customer
-          }
           setReceiptVouchers((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -583,13 +764,77 @@ export function useInvoiceSystem() {
         throw error
       }
     },
-    [receiptVouchers.length],
+    [],
   )
 
-  const updateReceiptVoucher = useCallback(async (id: string, updates: Partial<ReceiptVoucher>) => {
-    // Note: Update API endpoint would need to be created
-    setReceiptVouchers((prev) => prev.map((voucher) => (voucher.id === id ? { ...voucher, ...updates } : voucher)))
-  }, [])
+  const updateReceiptVoucher = useCallback(
+    async (id: string, voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
+      try {
+        const hadExistingCustomerId = Boolean(voucherData.customerId)
+        const customerId = await ensureCustomerInDatabase({
+          customerId: voucherData.customerId,
+          customer: voucherData.customer,
+        })
+
+        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
+          const newCustomer = {
+            id: String(customerId),
+            name: voucherData.customer.name,
+            email: voucherData.customer.email || "",
+            phone: voucherData.customer.phone,
+            address: voucherData.customer.address,
+            createdAt: new Date(),
+          }
+          setCustomers((prev) => {
+            if (prev.some((customer) => customer.id === newCustomer.id)) {
+              return prev
+            }
+            return [...prev, newCustomer]
+          })
+        }
+
+        const response = await fetch(`/api/receipt-vouchers/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_id: customerId,
+            receipt_date: voucherData.receiptDate.toISOString().split("T")[0],
+            currency: voucherData.currency,
+            amount: voucherData.amount,
+            payment_method: voucherData.paymentMethod || null,
+            reference_number: voucherData.referenceNumber || null,
+            description: voucherData.description || null,
+            descriptions: voucherData.descriptions || null,
+            status: voucherData.status,
+            notes: voucherData.notes || null,
+            delivered_by: voucherData.deliveredBy || null,
+            received_by: voucherData.receivedBy || null,
+            amount_language: voucherData.amountLanguage || "english",
+          }),
+        })
+
+        if (response.ok) {
+          const updatedVoucher = await response.json()
+          const transformed = transformReceiptVoucher(updatedVoucher)
+          setReceiptVouchers((prev) => prev.map((voucher) => (voucher.id === id ? transformed : voucher)))
+          return transformed
+        }
+
+        let errorMessage = "Failed to update receipt voucher"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage)
+      } catch (error) {
+        console.error("Error updating receipt voucher:", error)
+        throw error
+      }
+    },
+    [],
+  )
 
   const deleteReceiptVoucher = useCallback(async (id: string) => {
     // Note: Delete API endpoint would need to be created

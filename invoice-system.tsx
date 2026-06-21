@@ -155,11 +155,19 @@ export default function InvoiceSystem() {
     }
   }
 
-  const handleUpdatePaymentVoucher = (voucherData: any) => {
+  const handleUpdatePaymentVoucher = async (voucherData: any) => {
     if (selectedPaymentVoucherId) {
-      updatePaymentVoucher(selectedPaymentVoucherId, voucherData)
-      // After updating, show the payment voucher preview
-      setCurrentView("view-payment-voucher")
+      try {
+        await updatePaymentVoucher(selectedPaymentVoucherId, voucherData)
+        setCurrentView("view-payment-voucher")
+      } catch (error) {
+        console.error("Failed to update payment voucher:", error)
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to update payment voucher. Please try again.",
+        )
+      }
     }
   }
 
@@ -194,11 +202,19 @@ export default function InvoiceSystem() {
     }
   }
 
-  const handleUpdateReceiptVoucher = (voucherData: any) => {
+  const handleUpdateReceiptVoucher = async (voucherData: any) => {
     if (selectedReceiptVoucherId) {
-      updateReceiptVoucher(selectedReceiptVoucherId, voucherData)
-      // After updating, show the receipt voucher preview
-      setCurrentView("view-receipt-voucher")
+      try {
+        await updateReceiptVoucher(selectedReceiptVoucherId, voucherData)
+        setCurrentView("view-receipt-voucher")
+      } catch (error) {
+        console.error("Failed to update receipt voucher:", error)
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to update receipt voucher. Please try again.",
+        )
+      }
     }
   }
 
