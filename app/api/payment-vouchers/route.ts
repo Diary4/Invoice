@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { getNextPaymentVoucherNumber } from "@/lib/voucher-numbers"
 import { resolveCustomerId } from "@/lib/resolve-customer"
+import { insertPaymentVoucher } from "@/lib/payment-voucher-db"
 
 export async function GET() {
   try {
@@ -44,12 +45,8 @@ export async function POST(request: Request) {
       amount_language,
     } = voucherData
 
-    // Use descriptions array if provided, otherwise fall back to description string
-    const descriptionsArray = descriptions && descriptions.length > 0 
-      ? descriptions 
-      : description 
-        ? [description] 
-        : null
+    const descriptionsArray =
+      descriptions && descriptions.length > 0 ? descriptions : description ? [description] : null
 
     const voucher_number = await getNextPaymentVoucherNumber()
     const resolvedCustomerId = await resolveCustomerId({
@@ -59,17 +56,22 @@ export async function POST(request: Request) {
       customer_phone,
     })
 
-    const [voucher] = await sql`
-      INSERT INTO payment_vouchers (
-        voucher_number, customer_id, payment_date, currency,
-        amount, payment_method, reference_number, description, descriptions, status, notes, name, accountant_name, amount_language
-      )
-      VALUES (
-        ${voucher_number}, ${resolvedCustomerId}, ${payment_date}, ${currency || 'IQD'},
-        ${amount}, ${payment_method}, ${reference_number}, ${description}, ${descriptionsArray ? JSON.stringify(descriptionsArray) : null}::jsonb, ${status}, ${notes}, ${name || null}, ${accountant_name || null}, ${amount_language || 'english'}
-      )
-      RETURNING *
-    `
+    const voucher = await insertPaymentVoucher({
+      voucher_number,
+      customer_id: resolvedCustomerId,
+      payment_date,
+      currency: currency || "IQD",
+      amount,
+      payment_method,
+      reference_number,
+      description,
+      descriptionsArray,
+      status,
+      notes,
+      name: name || null,
+      accountant_name: accountant_name || null,
+      amount_language: amount_language || "english",
+    })
 
     const [voucherWithCustomer] = await sql`
       SELECT 
@@ -84,14 +86,19 @@ export async function POST(request: Request) {
     return NextResponse.json(voucherWithCustomer)
   } catch (error) {
     console.error("Error creating payment voucher:", error)
-    const dbError = error as { code?: string; detail?: string }
+    const dbError = error as { code?: string; detail?: string; message?: string }
     if (dbError.code === "23505") {
       return NextResponse.json(
         { error: "A voucher with this number already exists. Please try again." },
         { status: 409 },
       )
     }
-    return NextResponse.json({ error: "Failed to create payment voucher" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to create payment voucher",
+        details: dbError.message || String(error),
+      },
+      { status: 500 },
+    )
   }
 }
-

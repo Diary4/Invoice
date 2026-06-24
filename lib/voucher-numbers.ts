@@ -6,14 +6,30 @@ async function getNextVoucherNumber(table: "payment_vouchers" | "receipt_voucher
   const [result] =
     table === "payment_vouchers"
       ? await sql`
-          SELECT MAX(CAST(SUBSTRING(voucher_number FROM 4) AS INTEGER)) AS max_num
+          SELECT COALESCE(
+            MAX(
+              CASE
+                WHEN voucher_number ~ ${pattern}
+                THEN CAST(SUBSTRING(voucher_number FROM 4) AS INTEGER)
+                ELSE NULL
+              END
+            ),
+            0
+          ) AS max_num
           FROM payment_vouchers
-          WHERE voucher_number ~ ${pattern}
         `
       : await sql`
-          SELECT MAX(CAST(SUBSTRING(voucher_number FROM 4) AS INTEGER)) AS max_num
+          SELECT COALESCE(
+            MAX(
+              CASE
+                WHEN voucher_number ~ ${pattern}
+                THEN CAST(SUBSTRING(voucher_number FROM 4) AS INTEGER)
+                ELSE NULL
+              END
+            ),
+            0
+          ) AS max_num
           FROM receipt_vouchers
-          WHERE voucher_number ~ ${pattern}
         `
 
   const next = Number(result?.max_num ?? 0) + 1
