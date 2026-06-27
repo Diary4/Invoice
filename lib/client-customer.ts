@@ -5,18 +5,39 @@ type CustomerInput = {
   address?: string
 }
 
+export function parseCustomerIdForApi(customerId?: string | null): number | null {
+  if (!customerId || customerId === "__manual__" || customerId === "__none__") {
+    return null
+  }
+
+  const parsedId = Number.parseInt(customerId, 10)
+  return Number.isNaN(parsedId) ? null : parsedId
+}
+
+export function getCustomerApiPayload(params: {
+  customerId?: string | null
+  customer?: CustomerInput | null
+}) {
+  return {
+    customer_id: parseCustomerIdForApi(params.customerId),
+    customer_name: params.customer?.name?.trim() || null,
+    customer_email: params.customer?.email?.trim() || null,
+    customer_phone: params.customer?.phone?.trim() || null,
+    customer_address: params.customer?.address?.trim() || null,
+  }
+}
+
 export async function ensureCustomerInDatabase(params: {
   customerId?: string | null
   customer?: CustomerInput | null
 }): Promise<number | null> {
-  if (params.customerId) {
-    const parsedId = Number.parseInt(params.customerId, 10)
-    if (!Number.isNaN(parsedId)) {
-      return parsedId
-    }
+  const payload = getCustomerApiPayload(params)
+
+  if (payload.customer_id) {
+    return payload.customer_id
   }
 
-  const name = params.customer?.name?.trim()
+  const name = payload.customer_name
   if (!name) {
     return null
   }
@@ -26,9 +47,9 @@ export async function ensureCustomerInDatabase(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name,
-      email: params.customer?.email?.trim() || "",
-      phone: params.customer?.phone?.trim() || "",
-      address: params.customer?.address?.trim() || "",
+      email: payload.customer_email || "",
+      phone: payload.customer_phone || "",
+      address: payload.customer_address || "",
     }),
   })
 
@@ -36,6 +57,6 @@ export async function ensureCustomerInDatabase(params: {
     throw new Error("Failed to save customer to database")
   }
 
-  const newCustomer = await response.json()
-  return newCustomer.id
+  const customer = await response.json()
+  return customer.id
 }

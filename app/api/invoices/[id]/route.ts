@@ -2,9 +2,16 @@ import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { resolveCustomerId } from "@/lib/resolve-customer"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+type RouteParams = { params: Promise<{ id: string }> }
+
+export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const invoiceId = Number.parseInt(params.id)
+    const { id } = await params
+    const invoiceId = Number.parseInt(id, 10)
+
+    if (Number.isNaN(invoiceId)) {
+      return NextResponse.json({ error: "Invalid invoice id" }, { status: 400 })
+    }
 
     const [invoice] = await sql`
       SELECT 
@@ -35,15 +42,22 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const invoiceId = Number.parseInt(params.id)
+    const { id } = await params
+    const invoiceId = Number.parseInt(id, 10)
+
+    if (Number.isNaN(invoiceId)) {
+      return NextResponse.json({ error: "Invalid invoice id" }, { status: 400 })
+    }
+
     const invoiceData = await request.json()
     const {
       customer_id,
       customer_name,
       customer_email,
       customer_phone,
+      customer_address,
       issue_date,
       due_date,
       currency,
@@ -58,10 +72,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     } = invoiceData
 
     const resolvedCustomerId = await resolveCustomerId({
-      customer_id: customer_id || null,
+      customer_id: customer_id ?? null,
       customer_name,
       customer_email,
       customer_phone,
+      customer_address,
     })
 
     let invoice
@@ -189,9 +204,14 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const invoiceId = Number.parseInt(params.id)
+    const { id } = await params
+    const invoiceId = Number.parseInt(id, 10)
+
+    if (Number.isNaN(invoiceId)) {
+      return NextResponse.json({ error: "Invalid invoice id" }, { status: 400 })
+    }
 
     // Delete invoice items first (foreign key constraint)
     await sql`

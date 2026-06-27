@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import jsPDF from "jspdf"
 import { formatCurrencyForPDF } from "../lib/currency"
 import { numberToWords } from "../lib/number-to-words"
-import { ensureCustomerInDatabase } from "../lib/client-customer"
+import { getCustomerApiPayload } from "../lib/client-customer"
 import type { PaymentVoucher, ReceiptVoucher } from "../types"
 
 export interface Customer {
@@ -323,32 +323,32 @@ export function useInvoiceSystem() {
     setInvoices((prev) => prev.filter((invoice) => invoice.customerId !== id))
   }, [])
 
+  const syncCustomerToState = useCallback((row: any) => {
+    const customer = buildCustomerFromRow(row)
+    if (!customer?.id) {
+      return
+    }
+
+    setCustomers((prev) => {
+      const existingIndex = prev.findIndex((entry) => entry.id === customer.id)
+      if (existingIndex === -1) {
+        return [...prev, customer]
+      }
+
+      const next = [...prev]
+      next[existingIndex] = { ...next[existingIndex], ...customer }
+      return next
+    })
+  }, [])
+
   // Invoice management
   const addInvoice = useCallback(
     async (invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(invoiceData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: invoiceData.customerId,
           customer: invoiceData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && invoiceData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: invoiceData.customer.name,
-            email: invoiceData.customer.email || "",
-            phone: invoiceData.customer.phone,
-            address: invoiceData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         // Generate invoice number - use month/day + sequence to ensure uniqueness (without year)
         const now = new Date()
@@ -360,10 +360,7 @@ export function useInvoiceSystem() {
         
         const requestBody = {
           invoice_number: invoiceNumber,
-          customer_id: customerId,
-          customer_name: invoiceData.customer?.name || null,
-          customer_email: invoiceData.customer?.email || null,
-          customer_phone: invoiceData.customer?.phone || null,
+          ...customerPayload,
           issue_date: invoiceData.issueDate.toISOString().split("T")[0],
           due_date: invoiceData.dueDate.toISOString().split("T")[0],
           currency: invoiceData.currency,
@@ -411,21 +408,31 @@ export function useInvoiceSystem() {
             throw new Error("Invalid response from server")
           }
 
-          const applyCustomerFallback = (transformed: Invoice) => {
-            if (transformed.customer?.name || !invoiceData.customer?.name) {
+          const applyCustomerFallback = (transformed: Invoice, sourceRow?: any) => {
+            if (transformed.customer?.name) {
+              return transformed
+            }
+            if (sourceRow?.customer_name) {
+              return transformInvoice(sourceRow, transformed.items)
+            }
+            if (!invoiceData.customer?.name) {
               return transformed
             }
             return {
               ...transformed,
               customer: invoiceData.customer,
-              customerId: transformed.customerId || (customerId ? String(customerId) : null),
+              customerId:
+                transformed.customerId ||
+                (sourceRow?.customer_id ? String(sourceRow.customer_id) : invoiceData.customerId || null),
             }
           }
 
           if (newInvoice.items) {
             const transformed = applyCustomerFallback(
               transformInvoice(newInvoice, newInvoice.items || []),
+              newInvoice,
             )
+            syncCustomerToState(newInvoice)
             setInvoices((prev) => [...prev, transformed])
             return transformed
           }
@@ -437,7 +444,9 @@ export function useInvoiceSystem() {
               const invoiceWithItems = await invoiceRes.json()
               const transformed = applyCustomerFallback(
                 transformInvoice(invoiceWithItems, invoiceWithItems.items || []),
+                invoiceWithItems,
               )
+              syncCustomerToState(invoiceWithItems)
               setInvoices((prev) => [...prev, transformed])
               return transformed
             }
@@ -445,7 +454,8 @@ export function useInvoiceSystem() {
             console.error("Error fetching invoice items:", error)
           }
 
-          const transformed = applyCustomerFallback(transformInvoice(newInvoice, []))
+          const transformed = applyCustomerFallback(transformInvoice(newInvoice, []), newInvoice)
+          syncCustomerToState(newInvoice)
           setInvoices((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -498,43 +508,22 @@ export function useInvoiceSystem() {
         }
       }
     },
-    [],
+    [syncCustomerToState],
   )
 
   const updateInvoice = useCallback(
     async (id: string, invoiceData: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(invoiceData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: invoiceData.customerId,
           customer: invoiceData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && invoiceData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: invoiceData.customer.name,
-            email: invoiceData.customer.email || "",
-            phone: invoiceData.customer.phone,
-            address: invoiceData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         const response = await fetch(`/api/invoices/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: customerId,
-            customer_name: invoiceData.customer?.name || null,
-            customer_email: invoiceData.customer?.email || null,
-            customer_phone: invoiceData.customer?.phone || null,
+            ...customerPayload,
             issue_date: invoiceData.issueDate.toISOString().split("T")[0],
             due_date: invoiceData.dueDate.toISOString().split("T")[0],
             currency: invoiceData.currency,
@@ -562,9 +551,12 @@ export function useInvoiceSystem() {
             transformed = {
               ...transformed,
               customer: invoiceData.customer,
-              customerId: transformed.customerId || (customerId ? String(customerId) : null),
+              customerId:
+                transformed.customerId ||
+                (updatedInvoice.customer_id ? String(updatedInvoice.customer_id) : invoiceData.customerId || null),
             }
           }
+          syncCustomerToState(updatedInvoice)
           setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? transformed : invoice)))
           return transformed
         }
@@ -582,7 +574,7 @@ export function useInvoiceSystem() {
         throw error
       }
     },
-    [],
+    [syncCustomerToState],
   )
 
   const deleteInvoice = useCallback(async (id: string) => {
@@ -603,34 +595,16 @@ export function useInvoiceSystem() {
   const addPaymentVoucher = useCallback(
     async (voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(voucherData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: voucherData.customerId,
           customer: voucherData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: voucherData.customer.name,
-            email: voucherData.customer.email || "",
-            phone: voucherData.customer.phone,
-            address: voucherData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         const response = await fetch("/api/payment-vouchers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: customerId,
+            ...customerPayload,
             payment_date: voucherData.paymentDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -649,6 +623,7 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformPaymentVoucher(newVoucher)
+          syncCustomerToState(newVoucher)
           setPaymentVouchers((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -674,34 +649,16 @@ export function useInvoiceSystem() {
   const updatePaymentVoucher = useCallback(
     async (id: string, voucherData: Omit<PaymentVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(voucherData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: voucherData.customerId,
           customer: voucherData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: voucherData.customer.name,
-            email: voucherData.customer.email || "",
-            phone: voucherData.customer.phone,
-            address: voucherData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         const response = await fetch(`/api/payment-vouchers/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: customerId,
+            ...customerPayload,
             payment_date: voucherData.paymentDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -720,6 +677,7 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const updatedVoucher = await response.json()
           const transformed = transformPaymentVoucher(updatedVoucher)
+          syncCustomerToState(updatedVoucher)
           setPaymentVouchers((prev) => prev.map((voucher) => (voucher.id === id ? transformed : voucher)))
           return transformed
         }
@@ -758,34 +716,16 @@ export function useInvoiceSystem() {
   const addReceiptVoucher = useCallback(
     async (voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(voucherData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: voucherData.customerId,
           customer: voucherData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: voucherData.customer.name,
-            email: voucherData.customer.email || "",
-            phone: voucherData.customer.phone,
-            address: voucherData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         const response = await fetch("/api/receipt-vouchers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: customerId,
+            ...customerPayload,
             receipt_date: voucherData.receiptDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -804,6 +744,7 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const newVoucher = await response.json()
           const transformed = transformReceiptVoucher(newVoucher)
+          syncCustomerToState(newVoucher)
           setReceiptVouchers((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -829,34 +770,16 @@ export function useInvoiceSystem() {
   const updateReceiptVoucher = useCallback(
     async (id: string, voucherData: Omit<ReceiptVoucher, "id" | "voucherNumber" | "createdAt">) => {
       try {
-        const hadExistingCustomerId = Boolean(voucherData.customerId)
-        const customerId = await ensureCustomerInDatabase({
+        const customerPayload = getCustomerApiPayload({
           customerId: voucherData.customerId,
           customer: voucherData.customer,
         })
-
-        if (!hadExistingCustomerId && customerId && voucherData.customer?.name) {
-          const newCustomer = {
-            id: String(customerId),
-            name: voucherData.customer.name,
-            email: voucherData.customer.email || "",
-            phone: voucherData.customer.phone,
-            address: voucherData.customer.address,
-            createdAt: new Date(),
-          }
-          setCustomers((prev) => {
-            if (prev.some((customer) => customer.id === newCustomer.id)) {
-              return prev
-            }
-            return [...prev, newCustomer]
-          })
-        }
 
         const response = await fetch(`/api/receipt-vouchers/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: customerId,
+            ...customerPayload,
             receipt_date: voucherData.receiptDate.toISOString().split("T")[0],
             currency: voucherData.currency,
             amount: voucherData.amount,
@@ -875,6 +798,7 @@ export function useInvoiceSystem() {
         if (response.ok) {
           const updatedVoucher = await response.json()
           const transformed = transformReceiptVoucher(updatedVoucher)
+          syncCustomerToState(updatedVoucher)
           setReceiptVouchers((prev) => prev.map((voucher) => (voucher.id === id ? transformed : voucher)))
           return transformed
         }

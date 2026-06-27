@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { findOrCreateCustomer } from "@/lib/resolve-customer"
 
 export async function GET() {
   try {
@@ -38,10 +39,19 @@ export async function POST(request: Request) {
   try {
     const { name, email, phone, address } = await request.json()
 
+    if (!name?.trim()) {
+      return NextResponse.json({ error: "Customer name is required" }, { status: 400 })
+    }
+
+    const customerId = await findOrCreateCustomer({
+      name,
+      email,
+      phone,
+      address,
+    })
+
     const [customer] = await sql`
-      INSERT INTO customers (name, email, phone, address)
-      VALUES (${name}, ${email}, ${phone}, ${address})
-      RETURNING *
+      SELECT * FROM customers WHERE id = ${customerId}
     `
 
     return NextResponse.json(customer)

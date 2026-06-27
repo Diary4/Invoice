@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       customer_name,
       customer_email,
       customer_phone,
+      customer_address,
       issue_date,
       due_date,
       currency,
@@ -55,10 +56,11 @@ export async function POST(request: Request) {
     }
 
     const resolvedCustomerId = await resolveCustomerId({
-      customer_id: customer_id || null,
+      customer_id: customer_id ?? null,
       customer_name,
       customer_email,
       customer_phone,
+      customer_address,
     })
 
     // Insert invoice

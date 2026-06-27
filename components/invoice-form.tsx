@@ -108,19 +108,39 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    let selectedCustomer = null
+    let selectedCustomer: Customer | null = null
+    let resolvedCustomerId: string | null = null
+
     if (useManualCustomer && manualCustomerName.trim()) {
-      // Create a temporary customer object for manual entry
-      selectedCustomer = {
-        id: "__manual__",
-        name: manualCustomerName.trim(),
-        email: manualCustomerEmail.trim() || "",
-        phone: manualCustomerPhone.trim() || "",
-        address: "",
-        createdAt: new Date(),
+      const trimmedName = manualCustomerName.trim()
+      const existingCustomer = customers.find(
+        (customer) => customer.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+      )
+
+      if (existingCustomer) {
+        selectedCustomer = existingCustomer
+        resolvedCustomerId = existingCustomer.id
+      } else {
+        selectedCustomer = {
+          id: "__manual__",
+          name: trimmedName,
+          email: manualCustomerEmail.trim() || "",
+          phone: manualCustomerPhone.trim() || "",
+          address: "",
+          createdAt: new Date(),
+        }
+        resolvedCustomerId = null
       }
     } else if (customerId && customerId !== "__none__" && customerId !== "__manual__") {
-      selectedCustomer = customers.find((c) => c.id === customerId) || null
+      resolvedCustomerId = customerId
+      selectedCustomer = customers.find((c) => c.id === customerId) || {
+        id: customerId,
+        name: invoice?.customer?.name || "",
+        email: invoice?.customer?.email || "",
+        phone: invoice?.customer?.phone || "",
+        address: invoice?.customer?.address || "",
+        createdAt: new Date(),
+      }
     }
 
     // Auto-determine status based on paid amount
@@ -134,7 +154,7 @@ export function InvoiceForm({ customers, invoice, onSave, onCancel }: InvoiceFor
     }
 
     const invoiceData = {
-      customerId: useManualCustomer ? null : (customerId && customerId !== "__none__" && customerId !== "__manual__" ? customerId : null),
+      customerId: resolvedCustomerId,
       customer: selectedCustomer || undefined,
       items: items.map((item, index) => ({
         ...item,
