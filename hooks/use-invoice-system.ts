@@ -66,22 +66,45 @@ function transformCustomer(row: any): Customer {
   }
 }
 
+function buildCustomerFromRow(row: any): Customer | undefined {
+  if (!row.customer_name) {
+    return undefined
+  }
+
+  return {
+    id: row.customer_id ? String(row.customer_id) : "",
+    name: row.customer_name,
+    email: row.customer_email || "",
+    phone: row.customer_phone || undefined,
+    address: row.customer_address || undefined,
+    createdAt: new Date(),
+  }
+}
+
+function enrichInvoiceCustomer(invoice: Invoice, customers: Customer[]): Invoice {
+  if (invoice.customer?.name) {
+    return invoice
+  }
+
+  if (!invoice.customerId) {
+    return invoice
+  }
+
+  const customer = customers.find((entry) => entry.id === invoice.customerId)
+  if (!customer) {
+    return invoice
+  }
+
+  return { ...invoice, customer }
+}
+
 // Helper function to transform database row to Invoice
 function transformInvoice(row: any, items?: any[]): Invoice {
   return {
     id: String(row.id),
     invoiceNumber: row.invoice_number,
     customerId: row.customer_id ? String(row.customer_id) : null,
-    customer: row.customer_name
-      ? {
-          id: String(row.customer_id),
-          name: row.customer_name,
-          email: row.customer_email || "",
-          phone: undefined,
-          address: undefined,
-          createdAt: new Date(),
-        }
-      : undefined,
+    customer: buildCustomerFromRow(row),
     issueDate: new Date(row.issue_date),
     dueDate: new Date(row.due_date),
     items: items
@@ -214,9 +237,11 @@ export function useInvoiceSystem() {
         
         // Fetch customers
         const customersRes = await fetch("/api/customers")
+        let loadedCustomers: Customer[] = []
         if (customersRes.ok) {
           const customersData = await customersRes.json()
-          setCustomers(customersData.map(transformCustomer))
+          loadedCustomers = customersData.map(transformCustomer)
+          setCustomers(loadedCustomers)
         }
 
         // Fetch invoices
@@ -230,7 +255,7 @@ export function useInvoiceSystem() {
                 const itemsRes = await fetch(`/api/invoices/${invoice.id}`)
                 if (itemsRes.ok) {
                   const invoiceWithItems = await itemsRes.json()
-                  return transformInvoice(invoice, invoiceWithItems.items || [])
+                  return transformInvoice(invoiceWithItems, invoiceWithItems.items || [])
                 }
                 return transformInvoice(invoice, [])
               } catch {
@@ -238,7 +263,7 @@ export function useInvoiceSystem() {
               }
             })
           )
-          setInvoices(invoicesWithItems)
+          setInvoices(invoicesWithItems.map((invoice) => enrichInvoiceCustomer(invoice, loadedCustomers)))
         }
 
         // Fetch payment vouchers
@@ -336,6 +361,9 @@ export function useInvoiceSystem() {
         const requestBody = {
           invoice_number: invoiceNumber,
           customer_id: customerId,
+          customer_name: invoiceData.customer?.name || null,
+          customer_email: invoiceData.customer?.email || null,
+          customer_phone: invoiceData.customer?.phone || null,
           issue_date: invoiceData.issueDate.toISOString().split("T")[0],
           due_date: invoiceData.dueDate.toISOString().split("T")[0],
           currency: invoiceData.currency,
@@ -383,20 +411,41 @@ export function useInvoiceSystem() {
             throw new Error("Invalid response from server")
           }
 
-          // Fetch the complete invoice with items
+          const applyCustomerFallback = (transformed: Invoice) => {
+            if (transformed.customer?.name || !invoiceData.customer?.name) {
+              return transformed
+            }
+            return {
+              ...transformed,
+              customer: invoiceData.customer,
+              customerId: transformed.customerId || (customerId ? String(customerId) : null),
+            }
+          }
+
+          if (newInvoice.items) {
+            const transformed = applyCustomerFallback(
+              transformInvoice(newInvoice, newInvoice.items || []),
+            )
+            setInvoices((prev) => [...prev, transformed])
+            return transformed
+          }
+
+          // Fetch the complete invoice with items if POST response is incomplete
           try {
             const invoiceRes = await fetch(`/api/invoices/${newInvoice.id}`)
             if (invoiceRes.ok) {
               const invoiceWithItems = await invoiceRes.json()
-              const transformed = transformInvoice(invoiceWithItems, invoiceWithItems.items || [])
+              const transformed = applyCustomerFallback(
+                transformInvoice(invoiceWithItems, invoiceWithItems.items || []),
+              )
               setInvoices((prev) => [...prev, transformed])
               return transformed
             }
           } catch (error) {
             console.error("Error fetching invoice items:", error)
           }
-          // Fallback if items fetch fails
-          const transformed = transformInvoice(newInvoice, [])
+
+          const transformed = applyCustomerFallback(transformInvoice(newInvoice, []))
           setInvoices((prev) => [...prev, transformed])
           return transformed
         } else {
@@ -483,6 +532,9 @@ export function useInvoiceSystem() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customer_id: customerId,
+            customer_name: invoiceData.customer?.name || null,
+            customer_email: invoiceData.customer?.email || null,
+            customer_phone: invoiceData.customer?.phone || null,
             issue_date: invoiceData.issueDate.toISOString().split("T")[0],
             due_date: invoiceData.dueDate.toISOString().split("T")[0],
             currency: invoiceData.currency,
@@ -505,7 +557,14 @@ export function useInvoiceSystem() {
 
         if (response.ok) {
           const updatedInvoice = await response.json()
-          const transformed = transformInvoice(updatedInvoice, updatedInvoice.items || [])
+          let transformed = transformInvoice(updatedInvoice, updatedInvoice.items || [])
+          if (!transformed.customer?.name && invoiceData.customer?.name) {
+            transformed = {
+              ...transformed,
+              customer: invoiceData.customer,
+              customerId: transformed.customerId || (customerId ? String(customerId) : null),
+            }
+          }
           setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? transformed : invoice)))
           return transformed
         }

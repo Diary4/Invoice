@@ -10,7 +10,10 @@ export async function ensureCustomerInDatabase(params: {
   customer?: CustomerInput | null
 }): Promise<number | null> {
   if (params.customerId) {
-    return Number.parseInt(params.customerId, 10)
+    const parsedId = Number.parseInt(params.customerId, 10)
+    if (!Number.isNaN(parsedId)) {
+      return parsedId
+    }
   }
 
   const name = params.customer?.name?.trim()

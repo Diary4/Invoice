@@ -8,7 +8,8 @@ export async function GET() {
       SELECT 
         i.*,
         c.name as customer_name,
-        c.email as customer_email
+        c.email as customer_email,
+        c.phone as customer_phone
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
       ORDER BY i.created_at DESC
@@ -183,7 +184,25 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json(invoice)
+    const [invoiceWithCustomer] = await sql`
+      SELECT 
+        i.*,
+        c.name as customer_name,
+        c.email as customer_email,
+        c.phone as customer_phone,
+        c.address as customer_address
+      FROM invoices i
+      LEFT JOIN customers c ON i.customer_id = c.id
+      WHERE i.id = ${invoice.id}
+    `
+
+    const invoiceItems = await sql`
+      SELECT * FROM invoice_items
+      WHERE invoice_id = ${invoice.id}
+      ORDER BY id ASC
+    `
+
+    return NextResponse.json({ ...invoiceWithCustomer, items: invoiceItems })
   } catch (error) {
     console.error("Error creating invoice:", error)
     const errorMessage = error instanceof Error ? error.message : "Failed to create invoice"
