@@ -1071,12 +1071,14 @@ export function useInvoiceSystem() {
         doc.rect(8 + i * 9, patternY, 8, 4, "F")
       }
 
-      // Notes section (if any)
+      // Notes section (if any) — preserve user line breaks
       if (invoice.notes) {
         startY += 15
         doc.setFontSize(9)
         doc.setFont("helvetica", "normal")
-        const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 16)
+        const splitNotes = invoice.notes
+          .split(/\r?\n/)
+          .flatMap((line) => doc.splitTextToSize(line.length === 0 ? " " : line, pageWidth - 16))
         doc.text(splitNotes, 8, startY)
       }
 
@@ -1370,7 +1372,9 @@ export function useInvoiceSystem() {
         doc.setFont("helvetica", "bold")
         doc.text("Notes:", 20, notesY)
         doc.setFont("helvetica", "normal")
-        const splitNotes = doc.splitTextToSize(voucher.notes, 170)
+        const splitNotes = voucher.notes
+          .split(/\r?\n/)
+          .flatMap((line) => doc.splitTextToSize(line.length === 0 ? " " : line, 170))
         doc.text(splitNotes, 20, notesY + 10)
         signatureY = notesY + 20 + (splitNotes.length * 5)
       }
@@ -1735,7 +1739,9 @@ export function useInvoiceSystem() {
         doc.setFont("helvetica", "bold")
         doc.text("Notes:", 20, notesY)
         doc.setFont("helvetica", "normal")
-        const splitNotes = doc.splitTextToSize(voucher.notes, 170)
+        const splitNotes = voucher.notes
+          .split(/\r?\n/)
+          .flatMap((line) => doc.splitTextToSize(line.length === 0 ? " " : line, 170))
         doc.text(splitNotes, 20, notesY + 10)
         signatureY = notesY + 20 + (splitNotes.length * 5)
       }

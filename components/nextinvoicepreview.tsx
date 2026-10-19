@@ -191,7 +191,7 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
         {/* Notes */}
         {invoice.notes && (
           <div className="px-6 py-4 border-t border-gray-200">
-            <p className="text-sm">{invoice.notes}</p>
+            <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>
           </div>
         )}
 

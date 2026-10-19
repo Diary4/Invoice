@@ -210,7 +210,7 @@ export function ReceiptVoucherViewer({ voucher, companyInfo, onEdit, onDownloadP
             <div className="border-t pt-6">
               <h3 className="font-semibold text-primary mb-3">Notes:</h3>
               <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-muted-foreground">{voucher.notes}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{voucher.notes}</p>
               </div>
             </div>
           )}

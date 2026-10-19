@@ -228,7 +228,7 @@ export function InvoiceViewer({ invoice, companyInfo, onEdit, onDownloadPDF, onB
                 {invoice.notes && (
                   <li className="flex items-start">
                     <span className="mr-1">•</span>
-                    <span>{invoice.notes}</span>
+                    <span className="whitespace-pre-wrap">{invoice.notes}</span>
                   </li>
                 )}
               </ul>
